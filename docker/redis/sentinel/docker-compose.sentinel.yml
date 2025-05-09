@@ -1,0 +1,52 @@
+version: '3'
+services:
+  redis-master:
+    image: redis:7.2
+    container_name: redis-master
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+
+  redis-replica1:
+    image: redis:7.2
+    container_name: redis-replica1
+    depends_on:
+      - redis-master
+    command: redis-server --replicaof redis-master 6379
+
+  redis-replica2:
+    image: redis:7.2
+    container_name: redis-replica2
+    depends_on:
+      - redis-master
+    command: redis-server --replicaof redis-master 6379
+
+  sentinel1:
+    image: redis:7.2
+    container_name: sentinel1
+    depends_on:
+      - redis-master
+    ports:
+      - "26379:26379"
+    command: >
+      redis-sentinel /etc/sentinel.conf
+    volumes:
+      - ./sentinel/sentinel1.conf:/etc/sentinel.conf
+
+  sentinel2:
+    image: redis:7.2
+    container_name: sentinel2
+    depends_on:
+      - redis-master
+    command: redis-sentinel /etc/sentinel.conf
+    volumes:
+      - ./sentinel/sentinel2.conf:/etc/sentinel.conf
+
+  sentinel3:
+    image: redis:7.2
+    container_name: sentinel3
+    depends_on:
+      - redis-master
+    command: redis-sentinel /etc/sentinel.conf
+    volumes:
+      - ./sentinel/sentinel3.conf:/etc/sentinel.conf
