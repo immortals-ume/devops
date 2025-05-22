@@ -1,0 +1,43 @@
+stages:
+  - test
+  - sonar
+  - build
+  - deploy
+
+variables:
+  SONAR_SCANNER_OPTS: "-Xmx512m"
+  DOCKER_IMAGE: "registry.gitlab.com/your-group/your-app"
+
+before_script:
+  - echo "Running pipeline..."
+
+test:
+  stage: test
+  script:
+    - ./mvnw clean test
+  allow_failure: false
+
+sonarqube:
+  stage: sonar
+  script:
+    - ./mvnw sonar:sonar -Dsonar.projectKey=your-key -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=$SONAR_TOKEN
+  allow_failure: false
+
+build:
+  stage: build
+  script:
+    - docker build -t $DOCKER_IMAGE:$CI_COMMIT_SHORT_SHA .
+  only:
+    - main
+  dependencies:
+    - test
+    - sonarqube
+
+deploy:
+  stage: deploy
+  script:
+    - docker push $DOCKER_IMAGE:$CI_COMMIT_SHORT_SHA
+  only:
+    - main
+  dependencies:
+    - build

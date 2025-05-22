@@ -1,0 +1,39 @@
+name: build image and push to docker
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches:
+      - master
+      - develop
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - name: Cache Maven packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+      - name: Run Tests and Verify
+        run: ./mvnw clean verify
+      - name: Generate Coverage Report
+        run: ./mvnw jacoco:report
+      - name: Archive Test Reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: target/surefire-reports
+
+
+

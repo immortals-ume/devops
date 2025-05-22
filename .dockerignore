@@ -1,1 +1,51 @@
-build
+# Ignore Maven build output
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# Ignore Gradle build output
+build/
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Ignore logs
+*.log
+
+# Ignore IDE settings
+*.iml
+.idea/
+.vscode/
+
+# Ignore OS/system files
+.DS_Store
+Thumbs.db
+
+# Ignore Git version control
+.git/
+.gitignore
+
+# Ignore test results
+test-output/
+surefire-reports/
+jacoco.exec
+
+# Ignore documentation and temp files
+*.md
+*.tmp
+*.swp
+
+# Ignore node/npm files (if frontend included)
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+dist/
+.env
+
+# Ignore Docker files you don’t want inside
+.dockerignore
+docker-compose.yml
+Dockerfile*
+
+# Ignore misc backups
+*~
+*.bak
