@@ -1,0 +1,23 @@
+ Add this if you want Zipkin to persist traces using MySQL
+  #     mysql:
+  #       image: mysql:8
+  #       container_name: zipkin-mysql
+  #       ports:
+  #         - "3306:3306"
+  #       environment:
+  #         - MYSQL_ROOT_PASSWORD=root
+  #         - MYSQL_DATABASE=zipkin
+  #       volumes:
+  #         - zipkin-mysql-data:/var/lib/mysql
+  #
+  #     zipkin:
+  #       image: openzipkin/zipkin
+  #       ports:
+  #         - "9411:9411"
+  #       environment:
+  #         - STORAGE_TYPE=mysql
+  #         - MYSQL_HOST=mysql
+  #         - MYSQL_USER=root
+  #         - MYSQL_PASS=root
+  #       depends_on:
+  #         - mysql
