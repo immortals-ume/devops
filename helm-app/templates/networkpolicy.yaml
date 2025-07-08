@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "helm-app.fullname" . }}
+  labels:
+    app: {{ include "helm-app.name" . }}
+    environment: {{ .Values.env.ENVIRONMENT }}
+spec:
+  podSelector:
+    matchLabels:
+      app: {{ include "helm-app.name" . }}
+      environment: {{ .Values.env.ENVIRONMENT }}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector: {}
+  egress:
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0 

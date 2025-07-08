@@ -1,0 +1,15 @@
+{{- if .Values.prometheusRule.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "helm-app.fullname" . }}
+  labels:
+    release: prometheus
+    app: {{ include "helm-app.name" . }}
+    environment: {{ .Values.env.ENVIRONMENT }}
+spec:
+  groups:
+    - name: {{ include "helm-app.fullname" . }}-alerts
+      rules:
+        {{- toYaml .Values.prometheusRule.rules | nindent 8 }}
+{{- end }} 

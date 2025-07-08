@@ -1,0 +1,383 @@
+# Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: myapp
+---
+# Backend Secret (example: DB credentials)
+apiVersion: v1
+kind: Secret
+metadata:
+  name: myapp-backend-secrets
+  namespace: myapp
+  annotations:
+    kubernetes.io/description: "Backend sensitive environment variables. Use SealedSecrets or external secret stores in production."
+type: Opaque
+data:
+  db-password: <base64-encoded-db-password>
+  api-key: <base64-encoded-api-key>
+# Replace <base64-encoded-*> with base64-encoded values.
+---
+# Backend ConfigMap (non-sensitive env)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: myapp-backend-config
+  namespace: myapp
+data:
+  DB_HOST: "mysql.db.svc.cluster.local"
+  REDIS_HOST: "redis-standalone.cache.svc.cluster.local"
+  LOG_LEVEL: "INFO"
+---
+# Backend PVC (if needed)
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: myapp-backend-data
+  namespace: myapp
+spec:
+  accessModes: [ "ReadWriteOnce" ]
+  resources:
+    requests:
+      storage: 10Gi
+---
+# Backend Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp-backend
+  namespace: myapp
+  labels:
+    app: myapp-backend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: myapp-backend
+  template:
+    metadata:
+      labels:
+        app: myapp-backend
+    spec:
+      serviceAccountName: myapp-backend-sa
+      containers:
+        - name: backend
+          image: <your-backend-image:tag>
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: myapp-backend-config
+                  key: DB_HOST
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: myapp-backend-secrets
+                  key: db-password
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: myapp-backend-secrets
+                  key: api-key
+            - name: REDIS_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: myapp-backend-config
+                  key: REDIS_HOST
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: myapp-backend-config
+                  key: LOG_LEVEL
+          volumeMounts:
+            - name: backend-data
+              mountPath: /data
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 10
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 500m
+              memory: 512Mi
+            limits:
+              cpu: 2
+              memory: 2Gi
+      volumes:
+        - name: backend-data
+          persistentVolumeClaim:
+            claimName: myapp-backend-data
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 3000
+        fsGroup: 2000
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - myapp-backend
+              topologyKey: "kubernetes.io/hostname"
+---
+# Backend Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: myapp-backend
+  namespace: myapp
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: myapp-backend
+  type: ClusterIP
+---
+# Backend HPA
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: myapp-backend-hpa
+  namespace: myapp
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: myapp-backend
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+---
+# Backend PodDisruptionBudget
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: myapp-backend-pdb
+  namespace: myapp
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: myapp-backend
+---
+# Backend ServiceMonitor (Prometheus)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: myapp-backend-monitor
+  namespace: myapp
+spec:
+  selector:
+    matchLabels:
+      app: myapp-backend
+  endpoints:
+    - port: 8080
+      path: /actuator/prometheus
+      interval: 15s
+---
+# Backend ServiceAccount
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: myapp-backend-sa
+  namespace: myapp
+---
+# UI Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp-ui
+  namespace: myapp
+  labels:
+    app: myapp-ui
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: myapp-ui
+  template:
+    metadata:
+      labels:
+        app: myapp-ui
+    spec:
+      containers:
+        - name: ui
+          image: <your-ui-image:tag>
+          ports:
+            - containerPort: 80
+          env:
+            - name: API_URL
+              value: "https://<your-domain>/api"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 3000
+        fsGroup: 2000
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - myapp-ui
+              topologyKey: "kubernetes.io/hostname"
+---
+# UI Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: myapp-ui
+  namespace: myapp
+spec:
+  ports:
+    - port: 80
+      targetPort: 80
+  selector:
+    app: myapp-ui
+  type: ClusterIP
+---
+# UI HPA
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: myapp-ui-hpa
+  namespace: myapp
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: myapp-ui
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+---
+# UI PodDisruptionBudget
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: myapp-ui-pdb
+  namespace: myapp
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: myapp-ui
+---
+# Ingress (with TLS)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: myapp-ingress
+  namespace: myapp
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+    - hosts:
+        - <your-domain>
+      secretName: myapp-tls
+  rules:
+    - host: <your-domain>
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: myapp-ui
+                port:
+                  number: 80
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: myapp-backend
+                port:
+                  number: 8080
+---
+# NetworkPolicy: Only allow UI to talk to backend, backend to DB/Redis
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: myapp-backend-policy
+  namespace: myapp
+spec:
+  podSelector:
+    matchLabels:
+      app: myapp-backend
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: myapp-ui
+        - namespaceSelector:
+            matchLabels:
+              name: db
+        - namespaceSelector:
+            matchLabels:
+              name: cache
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: db
+        - namespaceSelector:
+            matchLabels:
+              name: cache
+        - podSelector:
+            matchLabels:
+              app: myapp-ui 

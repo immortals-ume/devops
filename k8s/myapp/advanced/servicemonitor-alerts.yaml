@@ -1,0 +1,31 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: myapp-backend-servicemonitor
+  namespace: myapp
+spec:
+  selector:
+    matchLabels:
+      app: myapp-backend
+  endpoints:
+    - port: 8080
+      path: /metrics
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: myapp-backend-alerts
+  namespace: myapp
+spec:
+  groups:
+    - name: myapp-backend.rules
+      rules:
+        - alert: HighCustomMetric
+          expr: avg_over_time(<your_custom_metric_name>[5m]) > 100
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "High custom metric detected on myapp-backend"
+            description: "Custom metric is above threshold for 5 minutes." 

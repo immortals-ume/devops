@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "helm-app.fullname" . }}
+  labels:
+    app: {{ include "helm-app.name" . }}
+    environment: {{ .Values.env.ENVIRONMENT }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "helm-app.name" . }}
+      environment: {{ .Values.env.ENVIRONMENT }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "helm-app.name" . }}
+        environment: {{ .Values.env.ENVIRONMENT }}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+      containers:
+        - name: {{ include "helm-app.name" . }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          env:
+            - name: ENVIRONMENT
+              value: {{ .Values.env.ENVIRONMENT | quote }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "helm-app.fullname" . }}-secrets
+                  key: dbPassword
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "helm-app.fullname" . }}-secrets
+                  key: apiKey
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 20
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - {{ include "helm-app.name" . }}
+              topologyKey: "kubernetes.io/hostname" 

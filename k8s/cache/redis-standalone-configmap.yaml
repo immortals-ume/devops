@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-standalone-config
+  namespace: cache
+  labels:
+    app: redis-standalone
+  annotations:
+    kubernetes.io/description: "Standalone Redis configuration. Mount as redis.conf."
+data:
+  redis.conf: |
+    bind 0.0.0.0
+    port 6379
+    save 900 1
+    dir /data
+    appendonly yes 

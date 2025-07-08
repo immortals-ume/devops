@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-standalone
+  namespace: cache
+spec:
+  ports:
+    - port: 6379
+      targetPort: 6379
+  selector:
+    app: redis-standalone
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-standalone
+  namespace: cache
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis-standalone
+  template:
+    metadata:
+      labels:
+        app: redis-standalone
+    spec:
+      containers:
+        - name: redis
+          image: redis:latest
+          ports:
+            - containerPort: 6379
+          command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+            - name: redis-config
+              mountPath: /usr/local/etc/redis/redis.conf
+              subPath: redis.conf
+          livenessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - redis-cli
+                - ping
+            initialDelaySeconds: 5
+            periodSeconds: 30
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+      volumes:
+        - name: redis-data
+          persistentVolumeClaim:
+            claimName: redis-standalone-data
+        - name: redis-config
+          configMap:
+            name: redis-standalone-config
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-standalone-data
+  namespace: cache
+spec:
+  accessModes: [ "ReadWriteOnce" ]
+  resources:
+    requests:
+      storage: 5Gi 

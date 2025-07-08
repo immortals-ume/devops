@@ -1,0 +1,8 @@
+{
+  "release-name": "ui",
+  "namespace": "myapp",
+  "helm-chart-version": "0.1.0",
+  "application-version": "2.0.0",
+  "values-file": "../helm-app/values-ui.yaml",
+  "secrets-file": "../helm-app/secrets-ui.yaml"
+} 

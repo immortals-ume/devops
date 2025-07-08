@@ -1,0 +1,11 @@
+releases:
+  - name: myapp-ns
+    namespace: myapp
+    chart: incubator/raw
+    version: 0.2.3
+    values:
+      - resources:
+          - apiVersion: v1
+            kind: Namespace
+            metadata:
+              name: myapp 

@@ -11,14 +11,16 @@ x-postgres-common: &postgres-common
     retries: 5
 
 services:
+  # MySQL database service
   mysql:
+    # Official MySQL image
     image: mysql:latest
     container_name: mysql_container
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/mysql_root_password
       MYSQL_DATABASE: ${MYSQL_DATABASE}
       MYSQL_USER: ${MYSQL_USER}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_PASSWORD_FILE: /run/secrets/mysql_user_password
     volumes:
       - mysql_data:/var/lib/mysql
       - ./mysql_custom.cnf:/etc/mysql/conf.d/custom.cnf
@@ -45,14 +47,18 @@ services:
     networks:
       - backend
     restart: unless-stopped
+    secrets:
+      - mysql_root_password
+      - mysql_user_password
+  # MongoDB read replica service
   mongodb_read:
     image: mongo:latest
-    container_name: mongo_container
+    container_name: mongodb_read_container
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      MONGO_INITDB_ROOT_PASSWORD_FILE: /run/secrets/mongo_root_password
     volumes:
-      - mongo_data:/data/db
+      - mongo_read_data:/data/db
       - ./mongod.conf:/etc/mongod.conf
     ports:
       - "27017:27017"
@@ -77,18 +83,20 @@ services:
     networks:
       - backend
     restart: unless-stopped
-
+    secrets:
+      - mongo_root_password
+  # MongoDB write replica service
   mongodb_write:
     image: mongo:latest
-    container_name: mongo_container
+    container_name: mongodb_write_container
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      MONGO_INITDB_ROOT_PASSWORD_FILE: /run/secrets/mongo_root_password
     volumes:
-      - mongo_data:/data/db
+      - mongo_write_data:/data/db
       - ./mongod.conf:/etc/mongod.conf
     ports:
-      - "27017:27017"
+      - "27018:27017"
     healthcheck:
       test: [ "CMD", "mongo", "--eval", "db.adminCommand('ping')" ]
       interval: 30s
@@ -110,7 +118,9 @@ services:
     networks:
       - backend
     restart: unless-stopped
-
+    secrets:
+      - mongo_root_password
+  # H2 in-memory database service
   h2:
     image: oscarfonts/h2:latest
     container_name: h2_container
@@ -142,11 +152,12 @@ services:
     networks:
       - backend
     restart: unless-stopped
+  # PostgreSQL primary instance
   postgres_primary:
     <<: *postgres-common
     container_name: postgres_primary
     ports:
-      - 5432:5432
+      - "5432:5432"
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: admin
@@ -163,12 +174,12 @@ services:
       -c max_replication_slots=10
       -c hot_standby_feedback=on
       -c hba_file=/etc/postgresql/pg_hba.conf
-
+  # PostgreSQL replica instance
   postgres_replica:
     <<: *postgres-common
     container_name: postgres_replica
     ports:
-      - 5433:5432
+      - "5433:5432"
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: admin
@@ -192,7 +203,16 @@ services:
       exec postgres
       "
 
-
 volumes:
   pg_primary_data:
   pg_replica_data:
+  mongo_read_data:
+  mongo_write_data:
+
+secrets:
+  mysql_root_password:
+    file: ./secrets/mysql_root_password.txt
+  mysql_user_password:
+    file: ./secrets/mysql_user_password.txt
+  mongo_root_password:
+    file: ./secrets/mongo_root_password.txt

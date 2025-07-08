@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluent-bit-config
+  namespace: observability
+  labels:
+    app: fluent-bit
+  annotations:
+    kubernetes.io/description: "Fluent Bit configuration. Mount as fluent-bit.conf."
+data:
+  fluent-bit.conf: |
+    [INPUT]
+        Name        forward
+        Listen      0.0.0.0
+        Port        24224
+    [Output]
+        Name        grafana-loki
+        Match       *
+        Url         http://loki:3100/loki/api/v1/push
+        RemoveKeys  source,container_id
+        Labels      {job="fluent-bit"}
+        LabelKeys   container_name
+        BatchWait   1s
+        BatchSize   1001024
+        LineFormat  json
+        LogLevel    info 

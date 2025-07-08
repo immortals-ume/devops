@@ -1,33 +1,21 @@
-# Use an official Ubuntu base image
-FROM ubuntu:20.04
+# Build stage
+FROM gradle:7.5.1-jdk11 AS build
+WORKDIR /app
+# Uncomment if you want to copy your project
+# COPY . .
+# RUN gradle build -x test
 
-# Metadata about the image
+# Runtime stage
+FROM openjdk:11-jre-slim
 LABEL authors="kaish"
+WORKDIR /app
+COPY --from=build /app/build/libs/*.jar app.jar
 
-# Install required packages: Gradle, JDK, and other dependencies
-RUN apt-get update && \
-    apt-get install -y openjdk-11-jdk wget unzip curl && \
-    apt-get clean
+# Create non-root user
+RUN useradd -m appuser
+USER appuser
 
-# Install Gradle (specify version as per requirement)
-ARG GRADLE_VERSION=7.5.1
-RUN wget https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip -P /tmp && \
-    unzip -d /opt/gradle /tmp/gradle-${GRADLE_VERSION}-bin.zip && \
-    rm /tmp/gradle-${GRADLE_VERSION}-bin.zip
+EXPOSE 8080
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s CMD curl -f http://localhost:8080/ || exit 1
 
-# Set environment variables for Java and Gradle
-ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
-ENV GRADLE_HOME=/opt/gradle/gradle-${GRADLE_VERSION}
-ENV PATH=${GRADLE_HOME}/bin:${JAVA_HOME}/bin:${PATH}
-
-# Copy your Gradle project (if you have a local project, uncomment this)
-# COPY . /usr/src/app
-
-# Set the working directory to where your Gradle project is located
-WORKDIR /usr/src/app
-
-# Run Gradle build when the container starts
-ENTRYPOINT ["gradle", "build"]
-
-# Alternatively, you can use CMD to allow overriding the entrypoint
-# CMD ["gradle", "build"]
+ENTRYPOINT ["java", "-jar", "app.jar"]

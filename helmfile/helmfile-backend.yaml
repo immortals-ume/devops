@@ -1,0 +1,18 @@
+releases:
+  - name: backend
+    namespace: myapp
+    chart: ../helm-app
+    version: 0.1.0
+    values:
+      - ../helm-app/values-backend.yaml
+    secrets:
+      - ../helm-app/secrets-backend.yaml
+
+  - name: ui
+    namespace: myapp
+    chart: ../helm-app
+    version: 0.1.0
+    values:
+      - ../helm-app/values-ui.yaml
+    secrets:
+      - ../helm-app/secrets-ui.yaml 

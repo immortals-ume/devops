@@ -1,0 +1,49 @@
+replicaCount: 4
+image:
+  repository: <your-prod-image-repo>
+  tag: <prod-tag>
+  pullPolicy: IfNotPresent
+resources:
+  limits:
+    cpu: 2
+    memory: 2Gi
+  requests:
+    cpu: 1
+    memory: 1Gi
+env:
+  ENVIRONMENT: production
+secrets:
+  dbPassword: <prod-db-password>
+  apiKey: <prod-api-key>
+ingress:
+  enabled: true
+  hosts:
+    - host: app.example.com
+      paths:
+        - /
+  tls:
+    - secretName: prod-tls
+      hosts:
+        - app.example.com
+persistence:
+  enabled: false
+  size: 50Gi
+  storageClass: "fast-prod"
+
+hpa:
+  enabled: false
+  minReplicas: 4
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+pdb:
+  enabled: false
+  minAvailable: 2
+  # maxUnavailable: 1
+
+serviceMonitor:
+  enabled: false
+
+prometheusRule:
+  enabled: false
+  rules: [] 

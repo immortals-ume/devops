@@ -1,0 +1,3 @@
+helmfiles:
+  - path: helmfile-init.yaml
+  - path: helmfile-backend.yaml 

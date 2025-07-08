@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: observability
+  labels:
+    app: prometheus
+  annotations:
+    kubernetes.io/description: "Prometheus configuration. Mount as prometheus.yml."
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+    rule_files:
+      - /etc/prometheus/alert.rules.yml
+    scrape_configs:
+      - job_name: 'kubernetes-nodes'
+        kubernetes_sd_configs:
+          - role: node
+        relabel_configs:
+          - action: labelmap
+            regex: __meta_kubernetes_node_label_(.+)
+      - job_name: 'kubernetes-pods'
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          - action: labelmap
+            regex: __meta_kubernetes_pod_label_(.+)
+      - job_name: 'infra-services'
+        static_configs:
+          - targets: ['mysql.db.svc.cluster.local:3306', 'mongodb-read.db.svc.cluster.local:27017', 'postgres-primary.db.svc.cluster.local:5432'] 

@@ -1,0 +1,48 @@
+replicaCount: 2
+image:
+  repository: <your-uat-image-repo>
+  tag: <uat-tag>
+  pullPolicy: IfNotPresent
+resources:
+  limits:
+    cpu: 750m
+    memory: 768Mi
+  requests:
+    cpu: 300m
+    memory: 384Mi
+env:
+  ENVIRONMENT: uat
+secrets:
+  dbPassword: <uat-db-password>
+  apiKey: <uat-api-key>
+ingress:
+  enabled: true
+  hosts:
+    - host: uat.example.com
+      paths:
+        - /
+  tls:
+    - secretName: uat-tls
+      hosts:
+        - uat.example.com
+persistence:
+  enabled: false
+  size: 10Gi
+  storageClass: "standard"
+
+hpa:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 5
+  targetCPUUtilizationPercentage: 75
+
+pdb:
+  enabled: false
+  minAvailable: 1
+
+serviceMonitor:
+  enabled: false
+
+prometheusRule:
+  enabled: false
+  rules: [] 

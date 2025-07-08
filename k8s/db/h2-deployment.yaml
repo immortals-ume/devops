@@ -1,0 +1,60 @@
+# WARNING: H2 is for development/testing only. Do NOT use in production environments.
+apiVersion: v1
+kind: Service
+metadata:
+  name: h2
+  namespace: db
+spec:
+  ports:
+    - port: 8082
+      targetPort: 8082
+    - port: 9092
+      targetPort: 9092
+  selector:
+    app: h2
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: h2
+  namespace: db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: h2
+  template:
+    metadata:
+      labels:
+        app: h2
+    spec:
+      containers:
+        - name: h2
+          image: oscarfonts/h2:latest
+          ports:
+            - containerPort: 8082
+            - containerPort: 9092
+          env:
+            - name: H2_OPTIONS
+              value: "-tcp -tcpAllowOthers -tcpPort 9092 -web -webAllowOthers -webPort 8082"
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8082
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8082
+            initialDelaySeconds: 5
+            periodSeconds: 30
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi 

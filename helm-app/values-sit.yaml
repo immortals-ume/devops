@@ -1,0 +1,48 @@
+replicaCount: 2
+image:
+  repository: <your-sit-image-repo>
+  tag: <sit-tag>
+  pullPolicy: IfNotPresent
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+env:
+  ENVIRONMENT: sit
+secrets:
+  dbPassword: <sit-db-password>
+  apiKey: <sit-api-key>
+ingress:
+  enabled: true
+  hosts:
+    - host: sit.example.com
+      paths:
+        - /
+  tls:
+    - secretName: sit-tls
+      hosts:
+        - sit.example.com
+persistence:
+  enabled: false
+  size: 5Gi
+  storageClass: "standard"
+
+hpa:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 75
+
+pdb:
+  enabled: false
+  minAvailable: 1
+
+serviceMonitor:
+  enabled: false
+
+prometheusRule:
+  enabled: false
+  rules: [] 

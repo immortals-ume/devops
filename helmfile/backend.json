@@ -1,0 +1,8 @@
+{
+  "release-name": "backend",
+  "namespace": "myapp",
+  "helm-chart-version": "0.1.0",
+  "application-version": "1.2.3",
+  "values-file": "../helm-app/values-backend.yaml",
+  "secrets-file": "../helm-app/secrets-backend.yaml"
+} 

@@ -1,0 +1,16 @@
+{{- if .Values.persistence.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "helm-app.fullname" . }}-data
+  labels:
+    app: {{ include "helm-app.name" . }}
+    environment: {{ .Values.env.ENVIRONMENT }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.persistence.size | default "10Gi" }}
+  storageClassName: {{ .Values.persistence.storageClass | quote }}
+{{- end }} 

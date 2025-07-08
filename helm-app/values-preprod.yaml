@@ -1,0 +1,48 @@
+replicaCount: 3
+image:
+  repository: <your-preprod-image-repo>
+  tag: <preprod-tag>
+  pullPolicy: IfNotPresent
+resources:
+  limits:
+    cpu: 1
+    memory: 1Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+env:
+  ENVIRONMENT: preprod
+secrets:
+  dbPassword: <preprod-db-password>
+  apiKey: <preprod-api-key>
+ingress:
+  enabled: true
+  hosts:
+    - host: preprod.example.com
+      paths:
+        - /
+  tls:
+    - secretName: preprod-tls
+      hosts:
+        - preprod.example.com
+persistence:
+  enabled: false
+  size: 20Gi
+  storageClass: "fast-preprod"
+
+hpa:
+  enabled: false
+  minReplicas: 3
+  maxReplicas: 8
+  targetCPUUtilizationPercentage: 70
+
+pdb:
+  enabled: false
+  minAvailable: 1
+
+serviceMonitor:
+  enabled: false
+
+prometheusRule:
+  enabled: false
+  rules: [] 

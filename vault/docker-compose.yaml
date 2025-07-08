@@ -16,8 +16,8 @@ services:
         }
     cap_add:
       - IPC_LOCK
-    networks:
-      - app_network
-
-networks:
-  app_network: # Custom network for container communication (Optional but recommended)
+#    networks:
+#      - app_network
+#
+#networks:
+#  app_network: # Custom network for container communication (Optional but recommended)

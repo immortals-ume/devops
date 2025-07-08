@@ -31,6 +31,10 @@ This repository contains Docker Compose configurations for various infrastructur
 - Docker and Docker Compose installed
 - Git for version control
 - Basic understanding of containerization concepts
+- Kubernetes cluster (with LoadBalancer support, e.g., cloud provider or MetalLB)
+- kubectl configured for your cluster
+- (Optional) Helm
+- (Optional) Terraform
 
 ## Getting Started
 
@@ -147,6 +151,101 @@ docker-compose -f redis/cluster/docker-compose.yml up -d
 docker exec -it redis-7000 redis-cli --cluster create 127.0.0.1:7000 127.0.0.1:7001 127.0.0.1:7002 127.0.0.1:7003 127.0.0.1:7004 127.0.0.1:7005 --cluster-replicas 1
 ```
 
+## Setup
+
+### 1. Docker Compose (Local Development)
+- Copy `.env.example` to `.env` and fill in your secrets:
+  ```sh
+  cp .env.example .env
+  # Edit .env as needed
+  ```
+- Start all services:
+  ```sh
+  docker-compose -f db/docker-compose.yml up -d
+  ```
+
+### 2. Kubernetes (Production/Cloud)
+- Ensure your cluster supports LoadBalancer services (cloud provider or MetalLB for bare metal).
+- Apply namespaces first:
+  ```sh
+  kubectl apply -f k8s/myapp/namespaces.yaml
+  ```
+- Apply each stack:
+  ```sh
+  kubectl apply -f k8s/db/
+  kubectl apply -f k8s/cache/
+  kubectl apply -f k8s/queue/
+  kubectl apply -f k8s/observability/
+  kubectl apply -f k8s/vault/
+  kubectl apply -f k8s/myapp/
+  ```
+- For services with `type: LoadBalancer`, get external IPs:
+  ```sh
+  kubectl get svc -A | grep LoadBalancer
+  ```
+
+### 3. Observability
+- Prometheus: http://<prometheus-loadbalancer-ip>:9090
+- Grafana: http://<grafana-loadbalancer-ip>:3000 (default admin credentials in k8s/observability/grafana-secrets.yaml)
+- Loki, Fluent Bit, Tempo: see k8s/observability/
+
+### 4. Terraform
+- See `terraform/` for infrastructure as code examples and state management best practices.
+
+## Security & Best Practices
+- **Secrets:** Use Kubernetes Secrets or SealedSecrets. Never commit real secrets to version control.
+- **NetworkPolicy:** Restrict inter-service communication. Example below.
+- **RBAC:** Use least-privilege roles for service accounts.
+- **Resource Limits:** All pods have CPU/memory requests and limits.
+- **Probes:** Liveness/readiness probes for all critical services.
+- **Backups:** Use provided scripts and automate with CronJobs.
+- **Monitoring:** Use Prometheus/Grafana dashboards and alerting.
+- **Disaster Recovery:** Document and test restore procedures.
+
+## Example: Kubernetes NetworkPolicy
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-namespace-internal
+  namespace: db
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: db
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: db
+```
+- Adjust `namespace` and `matchLabels` as needed for each stack.
+- Apply with: `kubectl apply -f <networkpolicy-file>.yaml`
+
+## Troubleshooting
+- Check pod status: `kubectl get pods -A`
+- View logs: `kubectl logs <pod> -n <namespace>`
+- Check service endpoints: `kubectl get svc -A`
+- For LoadBalancer issues, ensure your cluster supports it (cloud or MetalLB).
+- For database connection issues, verify secrets and service endpoints.
+
+## Production Deployment Checklist
+- [x] All manifests organized by stack in `k8s/`
+- [x] Namespaces, ConfigMaps, and Secrets templated
+- [x] Resource requests/limits and probes set
+- [x] NetworkPolicies in place
+- [x] Monitoring and alerting enabled
+- [x] Backups and disaster recovery documented
+- [x] CI/CD pipeline for automated deployment
+
+---
+For further help, see the `k8s/` directory for modular, production-ready manifests and templates for all major stacks.
 
 ## License
 
