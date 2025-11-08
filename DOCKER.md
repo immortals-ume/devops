@@ -14,7 +14,7 @@ docker build -f Dockerfile -t myapp-maven:<tag> ..
 ```sh
 cd docker
 # Build the image (replace <tag> as needed)
-docker build -f DockerfileGradle -t myapp-gradle:<tag> ..
+docker build -f Dockerfile-gradle -t myapp-gradle:<tag> ..
 ```
 
 ## Tagging and Pushing Images

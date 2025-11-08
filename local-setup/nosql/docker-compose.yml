@@ -1,0 +1,240 @@
+version: '3.9'
+
+x-mongo-common: &mongo-common
+  image: mongo:7.0
+  restart: unless-stopped
+  healthcheck:
+    test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+    interval: 30s
+    timeout: 10s
+    retries: 5
+    start_period: 40s
+  networks:
+    - nosql
+  security_opt:
+    - no-new-privileges:true
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  # MongoDB Replica Set
+  mongo_primary:
+    <<: *mongo-common
+    container_name: mongo_primary
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-admin}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-myapp}
+    volumes:
+      - mongo_primary_data:/data/db
+      - mongo_primary_config:/data/configdb
+      - ./mongo_init.js:/docker-entrypoint-initdb.d/mongo_init.js:ro
+      - ./mongod_primary.conf:/etc/mongod.conf:ro
+    command: ["mongod", "--config", "/etc/mongod.conf", "--replSet", "rs0", "--bind_ip_all"]
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+
+  mongo_secondary1:
+    <<: *mongo-common
+    container_name: mongo_secondary1
+    ports:
+      - "27018:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-admin}
+    depends_on:
+      mongo_primary:
+        condition: service_healthy
+    volumes:
+      - mongo_secondary1_data:/data/db
+      - mongo_secondary1_config:/data/configdb
+      - ./mongod_secondary.conf:/etc/mongod.conf:ro
+    command: ["mongod", "--config", "/etc/mongod.conf", "--replSet", "rs0", "--bind_ip_all"]
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+
+  mongo_secondary2:
+    <<: *mongo-common
+    container_name: mongo_secondary2
+    ports:
+      - "27019:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-admin}
+    depends_on:
+      mongo_primary:
+        condition: service_healthy
+    volumes:
+      - mongo_secondary2_data:/data/db
+      - mongo_secondary2_config:/data/configdb
+      - ./mongod_secondary.conf:/etc/mongod.conf:ro
+    command: ["mongod", "--config", "/etc/mongod.conf", "--replSet", "rs0", "--bind_ip_all"]
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+
+  # Cassandra Cluster
+  cassandra_node1:
+    image: cassandra:5.0
+    container_name: cassandra_node1
+    ports:
+      - "9042:9042"
+      - "9160:9160"
+    environment:
+      CASSANDRA_CLUSTER_NAME: ${CASSANDRA_CLUSTER_NAME:-DevCluster}
+      CASSANDRA_DC: ${CASSANDRA_DC:-dc1}
+      CASSANDRA_RACK: ${CASSANDRA_RACK:-rack1}
+      CASSANDRA_ENDPOINT_SNITCH: GossipingPropertyFileSnitch
+      CASSANDRA_SEEDS: cassandra_node1
+    volumes:
+      - cassandra_node1_data:/var/lib/cassandra
+    healthcheck:
+      test: ["CMD-SHELL", "nodetool status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - nosql
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+
+  cassandra_node2:
+    image: cassandra:5.0
+    container_name: cassandra_node2
+    ports:
+      - "9043:9042"
+    environment:
+      CASSANDRA_CLUSTER_NAME: ${CASSANDRA_CLUSTER_NAME:-DevCluster}
+      CASSANDRA_DC: ${CASSANDRA_DC:-dc1}
+      CASSANDRA_RACK: ${CASSANDRA_RACK:-rack1}
+      CASSANDRA_ENDPOINT_SNITCH: GossipingPropertyFileSnitch
+      CASSANDRA_SEEDS: cassandra_node1
+    depends_on:
+      cassandra_node1:
+        condition: service_healthy
+    volumes:
+      - cassandra_node2_data:/var/lib/cassandra
+    healthcheck:
+      test: ["CMD-SHELL", "nodetool status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - nosql
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+
+  # CouchDB
+  couchdb:
+    image: couchdb:3.3
+    container_name: couchdb
+    ports:
+      - "5984:5984"
+    environment:
+      COUCHDB_USER: ${COUCHDB_USER:-admin}
+      COUCHDB_PASSWORD: ${COUCHDB_PASSWORD:-admin}
+    volumes:
+      - couchdb_data:/opt/couchdb/data
+      - couchdb_config:/opt/couchdb/etc/local.d
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5984/_up"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - nosql
+    security_opt:
+      - no-new-privileges:true
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+volumes:
+  mongo_primary_data:
+    driver: local
+  mongo_primary_config:
+    driver: local
+  mongo_secondary1_data:
+    driver: local
+  mongo_secondary1_config:
+    driver: local
+  mongo_secondary2_data:
+    driver: local
+  mongo_secondary2_config:
+    driver: local
+  cassandra_node1_data:
+    driver: local
+  cassandra_node2_data:
+    driver: local
+  couchdb_data:
+    driver: local
+  couchdb_config:
+    driver: local
+
+networks:
+  nosql:
+    driver: bridge

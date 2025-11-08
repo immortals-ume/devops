@@ -10,20 +10,22 @@ This repository contains Docker Compose configurations for various infrastructur
 
 ```
 .
-├── db/                     # Database configurations
-│   ├── docker-compose-pg.yaml      # PostgreSQL with primary-replica setup
-│   └── docker-compose-sql.yaml     # MySQL, MongoDB, and H2 databases
-├── observability/          # Monitoring and observability tools
-│   ├── docker-compose-observability.yaml  # Prometheus, Grafana, Loki, etc.
-│   └── docker-compose-sonar.yaml          # SonarQube for code quality
-├── queue/                  # Message queue systems
-│   └── docker-compose-kafka.yaml   # Kafka with Zookeeper and Kafdrop
-├── redis/                  # Redis caching solutions
-│   ├── cluster/            # Redis cluster configuration
-│   ├── sentinel/           # Redis sentinel for high availability
-│   └── docker-compose.redis.yaml   # Standalone Redis
-└── vault/                  # Secrets management
-    └── docker-compose-vault.yaml   # HashiCorp Vault
+├── local-setup/            # Local development environment
+│   ├── db/                 # SQL databases (PostgreSQL, MySQL, MariaDB, MSSQL, Oracle)
+│   ├── nosql/              # NoSQL databases (MongoDB, Cassandra, CouchDB)
+│   ├── inmemory/           # In-memory databases (H2, Ignite, Hazelcast, Memcached)
+│   ├── cache/              # Redis caching (standalone, cluster, sentinel)
+│   ├── queue/              # Message queues (Kafka)
+│   ├── observability/      # Monitoring stack (Prometheus, Grafana, Loki, Tempo)
+│   └── vault/              # HashiCorp Vault for secrets
+├── cloud/                  # Cloud infrastructure
+│   ├── aws/                # AWS infrastructure (EKS, RDS, ElastiCache, MSK)
+│   ├── azure/              # Azure infrastructure (AKS, Azure DB, Cache, Event Hubs)
+│   └── gcp/                # GCP infrastructure (GKE, Cloud SQL, Memorystore, Pub/Sub)
+├── k8s/                    # Kubernetes manifests
+├── helm-app/               # Helm charts
+├── helmfile/               # Helmfile configurations
+└── terraform/              # Terraform modules
 ```
 
 ## Prerequisites
@@ -48,35 +50,41 @@ This repository contains Docker Compose configurations for various infrastructur
 
 3. Start the desired infrastructure component:
    ```bash
-   # For databases
-   docker-compose -f db/docker-compose-pg.yml up -d
+   # Quick start with Makefile
+   make up-all              # Start all local services
+   make up-db               # Start SQL databases only
+   make up-nosql            # Start NoSQL databases only
+   make up-inmemory         # Start in-memory databases only
+   make up-cache            # Start Redis cache
+   make up-queue            # Start Kafka
+   make up-observability    # Start monitoring stack
+   make up-vault            # Start Vault
 
-   # For observability
-   docker-compose -f observability/docker-compose.yaml up -d
-
-   # For message queues
-   docker-compose -f queue/docker-compose.yaml up -d
-
-   # For Redis (standalone)
-   docker-compose -f redis/docker-compose.yaml up -d
-
-   # For Vault
-   docker-compose -f vault/docker-compose.yaml up -d
+   # Or use docker-compose directly
+   cd local-setup/db && docker-compose up -d
+   cd local-setup/nosql && docker-compose up -d
+   cd local-setup/cache && docker-compose up -d
    ```
 
 ## Component Details
 
-### Databases
+### SQL Databases (local-setup/db/)
+- **PostgreSQL 16.2**: Primary-replica setup (ports 5432, 5433)
+- **MySQL 8.4**: Primary-replica with GTID (ports 3306, 3307)
+- **MariaDB 11.4**: Primary-replica with GTID (ports 3308, 3309)
+- **SQL Server 2022**: Developer edition (port 1433)
+- **Oracle XE 21c**: Express edition (port 1521)
 
-#### PostgreSQL
-- Primary-replica setup for high availability
-- Configured with proper replication settings
-- Accessible on ports 5432 (primary) and 5433 (replica)
+### NoSQL Databases (local-setup/nosql/)
+- **MongoDB 7.0**: 3-node replica set (ports 27017-27019)
+- **Cassandra 5.0**: 2-node cluster (ports 9042-9043)
+- **CouchDB 3.3**: Single instance with web UI (port 5984)
 
-#### MySQL, MongoDB, and H2
-- MySQL: Relational database with proper configuration
-- MongoDB: NoSQL database with read/write separation
-- H2: Lightweight in-memory database for testing
+### In-Memory Databases (local-setup/inmemory/)
+- **H2 2.2**: SQL in-memory database (ports 8082, 9092)
+- **Apache Ignite 2.16**: Distributed computing (port 10800)
+- **Hazelcast 5.3**: Distributed data grid (port 5701)
+- **Memcached 1.6**: Key-value cache (port 11212)
 
 ### Observability
 
@@ -128,40 +136,51 @@ GF_SECURITY_ADMIN_PASSWORD=admin
 ### Setting up a complete development environment
 
 ```bash
-# Start PostgreSQL database
-docker-compose -f db/docker-compose-pg.yml up -d
+# Start all services at once
+make up-all
 
-# Start Redis for caching
-docker-compose -f redis/docker-compose.yaml up -d
-
-# Start Kafka for messaging
-docker-compose -f queue/docker-compose.yaml up -d
-
-# Start observability stack
-docker-compose -f observability/docker-compose.yaml up -d
+# Or start services individually
+make up-db                # SQL databases
+make up-nosql             # NoSQL databases
+make up-cache             # Redis
+make up-queue             # Kafka
+make up-observability     # Monitoring stack
 ```
 
-### Setting up a high-availability Redis cluster
+### Setting up database replication
 
 ```bash
-# Start Redis cluster
-docker-compose -f redis/cluster/docker-compose.yml up -d
+# SQL databases
+cd local-setup/db
+make setup-mysql-replication
+make setup-mariadb-replication
 
-# Initialize the cluster (run this after all nodes are up)
-docker exec -it redis-7000 redis-cli --cluster create 127.0.0.1:7000 127.0.0.1:7001 127.0.0.1:7002 127.0.0.1:7003 127.0.0.1:7004 127.0.0.1:7005 --cluster-replicas 1
+# NoSQL databases
+cd local-setup/nosql
+make setup-mongo
 ```
 
 ## Setup
 
-### 1. Docker Compose (Local Development)
-- Copy `.env.example` to `.env` and fill in your secrets:
+### 1. Local Development (Docker Compose)
+- Navigate to local-setup directory:
   ```sh
-  cp .env.example .env
-  # Edit .env as needed
+  cd local-setup
   ```
-- Start all services:
+- Copy `.env.example` to `.env` in each subdirectory and customize:
   ```sh
-  docker-compose -f db/docker-compose.yml up -d
+  cp db/.env.example db/.env
+  cp nosql/.env.example nosql/.env
+  # Edit .env files as needed
+  ```
+- Start services:
+  ```sh
+  # From project root
+  make up-all
+  
+  # Or individually
+  cd local-setup/db && make up
+  cd local-setup/nosql && make up
   ```
 
 ### 2. Kubernetes (Production/Cloud)

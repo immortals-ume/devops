@@ -1,0 +1,371 @@
+version: '3.9'
+
+x-postgres-common: &postgres-common
+  image: postgres:16.2-alpine
+  user: postgres
+  restart: unless-stopped
+  healthcheck:
+    test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-root} -d postgres']
+    interval: 10s
+    timeout: 5s
+    retries: 5
+    start_period: 30s
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+  networks:
+    - backend
+  security_opt:
+    - no-new-privileges:true
+
+x-mysql-common: &mysql-common
+  image: mysql:8.4.0
+  restart: unless-stopped
+  healthcheck:
+    test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+    interval: 30s
+    timeout: 10s
+    retries: 5
+    start_period: 30s
+  networks:
+    - backend
+  security_opt:
+    - no-new-privileges:true
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "3"
+
+services:
+  # PostgreSQL Primary-Replica Setup
+  postgres_primary:
+    <<: *postgres-common
+    container_name: postgres_primary
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-root}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-root}
+      POSTGRES_DB: ${POSTGRES_DB:-myapp}
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=en_US.UTF-8"
+    volumes:
+      - pg_primary_data:/var/lib/postgresql/data
+      - ./postgres_init.sql:/docker-entrypoint-initdb.d/00_init.sql:ro
+      - ./pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+      - ./postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    command: >
+      postgres
+      -c config_file=/etc/postgresql/postgresql.conf
+      -c hba_file=/etc/postgresql/pg_hba.conf
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+
+  postgres_replica:
+    <<: *postgres-common
+    container_name: postgres_replica
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-root}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-root}
+      PGUSER: replicator
+    depends_on:
+      postgres_primary:
+        condition: service_healthy
+    volumes:
+      - pg_replica_data:/var/lib/postgresql/data
+    command: >
+      bash -c "
+      if [ ! -s /var/lib/postgresql/data/PG_VERSION ]; then
+        until pg_basebackup -h postgres_primary -p 5432 -D /var/lib/postgresql/data -U replicator -v -R --slot=replication_slot --write-recovery-conf;
+        do
+          echo 'Waiting for primary to connect...';
+          sleep 2;
+        done;
+        echo 'Replica initialized';
+        chmod 0700 /var/lib/postgresql/data;
+      fi;
+      exec postgres -c hot_standby=on
+      "
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+
+  # MySQL Primary-Replica Setup
+  mysql_primary:
+    <<: *mysql-common
+    container_name: mysql_primary
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-myapp}
+      MYSQL_USER: ${MYSQL_USER:-myapp}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-myapp}
+      MYSQL_REPLICATION_MODE: master
+      MYSQL_REPLICATION_USER: ${MYSQL_REPLICATION_USER:-replicator}
+      MYSQL_REPLICATION_PASSWORD: ${MYSQL_REPLICATION_PASSWORD:-replicator}
+    volumes:
+      - mysql_primary_data:/var/lib/mysql
+      - ./mysql_primary.cnf:/etc/mysql/conf.d/custom.cnf:ro
+      - ./mysql_init:/docker-entrypoint-initdb.d:ro
+    command: 
+      - --server-id=1
+      - --log-bin=mysql-bin
+      - --binlog-format=ROW
+      - --gtid-mode=ON
+      - --enforce-gtid-consistency=ON
+      - --log-slave-updates=ON
+      - --binlog-do-db=${MYSQL_DATABASE:-myapp}
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  mysql_replica:
+    <<: *mysql-common
+    container_name: mysql_replica
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_REPLICATION_MODE: slave
+      MYSQL_MASTER_HOST: mysql_primary
+      MYSQL_MASTER_PORT: 3306
+      MYSQL_REPLICATION_USER: ${MYSQL_REPLICATION_USER:-replicator}
+      MYSQL_REPLICATION_PASSWORD: ${MYSQL_REPLICATION_PASSWORD:-replicator}
+    depends_on:
+      mysql_primary:
+        condition: service_healthy
+    volumes:
+      - mysql_replica_data:/var/lib/mysql
+      - ./mysql_replica.cnf:/etc/mysql/conf.d/custom.cnf:ro
+    command:
+      - --server-id=2
+      - --log-bin=mysql-bin
+      - --binlog-format=ROW
+      - --gtid-mode=ON
+      - --enforce-gtid-consistency=ON
+      - --log-slave-updates=ON
+      - --read-only=ON
+      - --skip-slave-start
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # MariaDB Primary-Replica Setup
+  mariadb_primary:
+    image: mariadb:11.4
+    container_name: mariadb_primary
+    ports:
+      - "3308:3306"
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-root}
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-myapp}
+      MARIADB_USER: ${MARIADB_USER:-myapp}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-myapp}
+      MARIADB_REPLICATION_USER: ${MARIADB_REPLICATION_USER:-replicator}
+      MARIADB_REPLICATION_PASSWORD: ${MARIADB_REPLICATION_PASSWORD:-replicator}
+    volumes:
+      - mariadb_primary_data:/var/lib/mysql
+      - ./mariadb_primary.cnf:/etc/mysql/conf.d/custom.cnf:ro
+      - ./mariadb_init:/docker-entrypoint-initdb.d:ro
+    command:
+      - --server-id=1
+      - --log-bin=mariadb-bin
+      - --binlog-format=ROW
+      - --gtid-strict-mode=ON
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - backend
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  mariadb_replica:
+    image: mariadb:11.4
+    container_name: mariadb_replica
+    ports:
+      - "3309:3306"
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-root}
+      MARIADB_MASTER_HOST: mariadb_primary
+      MARIADB_REPLICATION_USER: ${MARIADB_REPLICATION_USER:-replicator}
+      MARIADB_REPLICATION_PASSWORD: ${MARIADB_REPLICATION_PASSWORD:-replicator}
+    depends_on:
+      mariadb_primary:
+        condition: service_healthy
+    volumes:
+      - mariadb_replica_data:/var/lib/mysql
+      - ./mariadb_replica.cnf:/etc/mysql/conf.d/custom.cnf:ro
+    command:
+      - --server-id=2
+      - --log-bin=mariadb-bin
+      - --binlog-format=ROW
+      - --read-only=ON
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - backend
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Microsoft SQL Server
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: mssql_server
+    ports:
+      - "1433:1433"
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd}
+      MSSQL_PID: ${MSSQL_PID:-Developer}
+      MSSQL_AGENT_ENABLED: "true"
+    volumes:
+      - mssql_data:/var/opt/mssql
+      - ./mssql_init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "/opt/mssql-tools/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "${MSSQL_SA_PASSWORD:-YourStrong@Passw0rd}", "-Q", "SELECT 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+    networks:
+      - backend
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Oracle Database XE
+  oracle:
+    image: gvenzl/oracle-xe:21-slim
+    container_name: oracle_xe
+    ports:
+      - "1521:1521"
+      - "5500:5500"
+    environment:
+      ORACLE_PASSWORD: ${ORACLE_PASSWORD:-Oracle123}
+      ORACLE_DATABASE: ${ORACLE_DATABASE:-MYAPP}
+      APP_USER: ${ORACLE_APP_USER:-myapp}
+      APP_USER_PASSWORD: ${ORACLE_APP_PASSWORD:-myapp}
+    volumes:
+      - oracle_data:/opt/oracle/oradata
+      - ./oracle_init:/container-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 120s
+    restart: unless-stopped
+    networks:
+      - backend
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  pg_primary_data:
+    driver: local
+  pg_replica_data:
+    driver: local
+  mysql_primary_data:
+    driver: local
+  mysql_replica_data:
+    driver: local
+  mariadb_primary_data:
+    driver: local
+  mariadb_replica_data:
+    driver: local
+  mssql_data:
+    driver: local
+  oracle_data:
+    driver: local
+
+networks:
+  backend:
+    driver: bridge

@@ -1,2 +1,89 @@
-.idea
-infra-devops.iml
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+*.env
+
+# Secrets
+secrets/
+*.pem
+*.key
+*.crt
+*.p12
+*.jks
+
+# Logs
+*.log
+logs/
+
+# Docker
+docker-compose.override.yml
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+
+# Kubernetes
+kubeconfig
+*.kubeconfig
+
+# Backup files
+*.bak
+*.backup
+*.sql.gz
+*.dump
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Java
+target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Build outputs
+dist/
+build/
+out/
+
+# Data directories (keep structure, ignore data)
+local-setup/*/data/
+local-setup/*/backups/
+local-setup/*/projects/*
+!local-setup/*/projects/.gitkeep
+
+.env.example

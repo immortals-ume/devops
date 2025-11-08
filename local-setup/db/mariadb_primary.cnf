@@ -1,0 +1,43 @@
+[mysqld]
+# MariaDB Primary Configuration
+
+# Server ID
+server-id = 1
+
+# Binary Logging
+log-bin = mariadb-bin
+binlog-format = ROW
+expire_logs_days = 7
+max_binlog_size = 100M
+
+# GTID
+gtid-strict-mode = ON
+log-slave-updates = ON
+
+# Replication
+sync_binlog = 1
+binlog_cache_size = 32K
+
+# InnoDB Settings
+innodb_buffer_pool_size = 512M
+innodb_log_file_size = 128M
+innodb_flush_log_at_trx_commit = 1
+innodb_flush_method = O_DIRECT
+
+# Connection Settings
+max_connections = 200
+max_connect_errors = 100
+
+# Character Set
+character-set-server = utf8mb4
+collation-server = utf8mb4_unicode_ci
+
+# Logging
+slow_query_log = 1
+slow_query_log_file = /var/lib/mysql/slow-query.log
+long_query_time = 2
+
+# Performance
+table_open_cache = 2000
+tmp_table_size = 64M
+max_heap_table_size = 64M

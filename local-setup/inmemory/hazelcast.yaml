@@ -1,0 +1,30 @@
+hazelcast:
+  cluster-name: dev
+  
+  network:
+    port:
+      auto-increment: true
+      port-count: 100
+      port: 5701
+    join:
+      multicast:
+        enabled: true
+      tcp-ip:
+        enabled: false
+  
+  map:
+    default:
+      backup-count: 1
+      time-to-live-seconds: 0
+      max-idle-seconds: 0
+      eviction:
+        eviction-policy: LRU
+        max-size-policy: PER_NODE
+        size: 10000
+  
+  management-center:
+    scripting-enabled: true
+  
+  properties:
+    hazelcast.health.monitoring.level: NOISY
+    hazelcast.rest.enabled: true

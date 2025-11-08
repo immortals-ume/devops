@@ -1,0 +1,51 @@
+[mysqld]
+# Replica Server Configuration
+
+# Server ID (must be unique)
+server-id = 2
+
+# Binary Logging
+log-bin = mysql-bin
+binlog-format = ROW
+binlog-expire-logs-seconds = 604800
+max_binlog_size = 100M
+
+# GTID
+gtid-mode = ON
+enforce-gtid-consistency = ON
+log-slave-updates = ON
+
+# Replication
+relay-log = relay-bin
+relay-log-index = relay-bin.index
+relay-log-info-repository = TABLE
+master-info-repository = TABLE
+skip-slave-start
+
+# Read-Only
+read-only = ON
+super-read-only = ON
+
+# InnoDB Settings
+innodb_buffer_pool_size = 512M
+innodb_log_file_size = 128M
+innodb_flush_log_at_trx_commit = 2
+innodb_flush_method = O_DIRECT
+
+# Connection Settings
+max_connections = 200
+max_connect_errors = 100
+
+# Character Set
+character-set-server = utf8mb4
+collation-server = utf8mb4_unicode_ci
+
+# Logging
+slow_query_log = 1
+slow_query_log_file = /var/lib/mysql/slow-query.log
+long_query_time = 2
+
+# Performance
+table_open_cache = 2000
+tmp_table_size = 64M
+max_heap_table_size = 64M
