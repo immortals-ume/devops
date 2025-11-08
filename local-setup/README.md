@@ -105,19 +105,19 @@ make clean
 
 | Service | URL | Credentials |
 |---------|-----|-------------|
-| Grafana | http://localhost:3000 | admin/admin |
+| Grafana | http://localhost:3000 | See .env.example |
 | Prometheus | http://localhost:9090 | - |
 | Alertmanager | http://localhost:9093 | - |
 | Jaeger | http://localhost:16686 | - |
 | Kafdrop (Kafka) | http://localhost:9000 | - |
-| RabbitMQ | http://localhost:15672 | admin/admin |
-| ActiveMQ | http://localhost:8161 | admin/admin |
+| RabbitMQ | http://localhost:15672 | See .env.example |
+| ActiveMQ | http://localhost:8161 | See .env.example |
 | Redis Commander | http://localhost:8081 | - |
-| Vault | http://localhost:8200 | token: root |
+| Vault | http://localhost:8200 | See .env.example |
 | Consul | http://localhost:8500 | - |
-| SonarQube | http://localhost:9000 | admin/admin |
-| CouchDB | http://localhost:5984/_utils | admin/admin |
-| H2 Console | http://localhost:8082 | sa/(empty) |
+| SonarQube | http://localhost:9000 | See .env.example |
+| CouchDB | http://localhost:5984/_utils | See .env.example |
+| H2 Console | http://localhost:8082 | See documentation |
 | cAdvisor | http://localhost:8080 | - |
 
 ### Database Connections
@@ -128,52 +128,49 @@ make clean
 ```
 Host: localhost
 Port: 5432 (primary), 5433 (replica)
-User: root
-Password: root
 Database: myapp
+Credentials: See local-setup/db/.env.example
 ```
 
 **MySQL:**
 ```
 Host: localhost
 Port: 3306 (primary), 3307 (replica)
-User: root
-Password: root
 Database: myapp
+Credentials: See local-setup/db/.env.example
 ```
 
 **MariaDB:**
 ```
 Host: localhost
 Port: 3308 (primary), 3309 (replica)
-User: root
-Password: root
 Database: myapp
+Credentials: See local-setup/db/.env.example
 ```
 
 **SQL Server:**
 ```
 Host: localhost
 Port: 1433
-User: sa
-Password: YourStrong@Passw0rd
 Database: myapp
+Credentials: See local-setup/db/.env.example
 ```
 
 **Oracle:**
 ```
 Host: localhost
 Port: 1521
-User: myapp
-Password: myapp
 SID: MYAPP
+Credentials: See local-setup/db/.env.example
 ```
 
 #### NoSQL Databases
 
 **MongoDB:**
 ```
-Connection String: mongodb://admin:admin@localhost:27017,localhost:27018,localhost:27019/?replicaSet=rs0
+Hosts: localhost:27017,localhost:27018,localhost:27019
+Replica Set: rs0
+Credentials: See local-setup/nosql/.env.example
 ```
 
 **Cassandra:**
@@ -184,7 +181,8 @@ Port: 9042
 
 **CouchDB:**
 ```
-URL: http://admin:admin@localhost:5984
+URL: http://localhost:5984
+Credentials: See local-setup/nosql/.env.example
 ```
 
 #### In-Memory Databases
@@ -192,8 +190,7 @@ URL: http://admin:admin@localhost:5984
 **H2:**
 ```
 JDBC URL: jdbc:h2:tcp://localhost:9092/mem:testdb
-User: sa
-Password: (empty)
+Credentials: See local-setup/inmemory/README.md
 ```
 
 **Ignite:**
@@ -245,8 +242,7 @@ Bootstrap Servers: localhost:9092,localhost:9093,localhost:9094
 Host: localhost
 Port: 5672 (AMQP)
 Management: http://localhost:15672
-User: admin
-Password: admin
+Credentials: See local-setup/queue/.env.example
 ```
 
 **ActiveMQ:**
@@ -255,8 +251,7 @@ OpenWire: tcp://localhost:61616
 AMQP: tcp://localhost:5671
 STOMP: tcp://localhost:61613
 MQTT: tcp://localhost:1883
-User: admin
-Password: admin
+Credentials: See local-setup/queue/.env.example
 ```
 
 ## 🔧 Configuration
