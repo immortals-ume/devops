@@ -1,6 +1,33 @@
 # DevOps Infrastructure Repository
 
-A comprehensive collection of infrastructure-as-code configurations for modern application development and deployment. This repository provides ready-to-use Docker Compose configurations for databases, caching, message queues, observability tools, and secrets management.
+A comprehensive collection of infrastructure-as-code configurations for modern application development and deployment.
+
+## 🎯 Repository Phases
+
+### ✅ Phase 1: LOCAL INFRASTRUCTURE (Complete)
+**Purpose:** Run everything locally for development and testing
+- Docker Compose for local services
+- Kubernetes manifests for any K8s cluster (local or on-premise)
+- Helm charts for package management
+- Helmfile for multi-service orchestration
+- CI/CD pipelines (GitHub Actions, GitLab CI, Jenkins)
+
+**Target:** Local development, on-premise Kubernetes, generic K8s clusters
+
+### 🔜 Phase 2: CLOUD INFRASTRUCTURE (Planned)
+**Purpose:** Deploy to cloud providers with managed services
+- AWS infrastructure with Terraform (EKS, RDS, ElastiCache, MSK)
+- Azure infrastructure with Terraform (AKS, Azure DB, Cache, Event Hubs)
+- GCP infrastructure with Terraform (GKE, Cloud SQL, Memorystore, Pub/Sub)
+- Cloud-specific CI/CD enhancements
+
+**Target:** AWS, Azure, GCP production deployments
+
+---
+
+## Overview
+
+This repository provides ready-to-use configurations for databases, caching, message queues, observability tools, and secrets management that can run **locally** or on **any Kubernetes cluster**.
 
 ## Overview
 
@@ -8,35 +35,53 @@ This repository contains Docker Compose configurations for various infrastructur
 
 ## Repository Structure
 
+### Phase 1: Local Infrastructure (✅ Complete)
+
 ```
 .
-├── local-setup/            # Local development environment
+├── local-setup/            # Local development with Docker Compose
 │   ├── db/                 # SQL databases (PostgreSQL, MySQL, MariaDB, MSSQL, Oracle)
 │   ├── nosql/              # NoSQL databases (MongoDB, Cassandra, CouchDB)
 │   ├── inmemory/           # In-memory databases (H2, Ignite, Hazelcast, Memcached)
 │   ├── cache/              # Redis caching (standalone, cluster, sentinel)
-│   ├── queue/              # Message queues (Kafka)
+│   ├── queue/              # Message queues (Kafka, RabbitMQ, ActiveMQ)
 │   ├── observability/      # Monitoring stack (Prometheus, Grafana, Loki, Tempo)
-│   └── vault/              # HashiCorp Vault for secrets
-├── cloud/                  # Cloud infrastructure
-│   ├── aws/                # AWS infrastructure (EKS, RDS, ElastiCache, MSK)
-│   ├── azure/              # Azure infrastructure (AKS, Azure DB, Cache, Event Hubs)
-│   └── gcp/                # GCP infrastructure (GKE, Cloud SQL, Memorystore, Pub/Sub)
-├── k8s/                    # Kubernetes manifests
-├── helm-app/               # Helm charts
-├── helmfile/               # Helmfile configurations
-└── terraform/              # Terraform modules
+│   ├── vault/              # HashiCorp Vault for secrets
+│   └── sonarqube/          # Code quality analysis
+├── k8s/                    # Kubernetes manifests (works with any K8s cluster)
+├── helm-charts/            # Helm charts (7 infrastructure charts)
+├── helm-app/               # Application Helm chart
+├── helmfile/               # Multi-service orchestration
+├── .github/workflows/      # GitHub Actions CI/CD (5 workflows)
+├── .gitlab-ci.yml          # GitLab CI pipeline
+└── Jenkinsfile             # Jenkins declarative pipeline
+```
+
+### Phase 2: Cloud Infrastructure (🔜 Planned)
+
+```
+.
+├── cloud/                  # Cloud-specific infrastructure
+│   ├── aws/                # AWS (EKS, RDS, ElastiCache, MSK) - Terraform
+│   ├── azure/              # Azure (AKS, Azure DB, Cache, Event Hubs) - Terraform
+│   └── gcp/                # GCP (GKE, Cloud SQL, Memorystore, Pub/Sub) - Terraform
+└── terraform/              # Enhanced Terraform modules
 ```
 
 ## Prerequisites
 
+### Phase 1 (Local Infrastructure):
 - Docker and Docker Compose installed
 - Git for version control
-- Basic understanding of containerization concepts
-- Kubernetes cluster (with LoadBalancer support, e.g., cloud provider or MetalLB)
-- kubectl configured for your cluster
-- (Optional) Helm
-- (Optional) Terraform
+- (Optional) Local Kubernetes: Minikube, Kind, K3s, or Docker Desktop
+- (Optional) kubectl for Kubernetes deployments
+- (Optional) Helm for chart deployments
+
+### Phase 2 (Cloud Infrastructure - Coming Soon):
+- Terraform >= 1.5.0
+- Cloud CLI tools (AWS CLI, Azure CLI, gcloud)
+- Cloud account with appropriate permissions
+- kubectl and Helm
 
 ## Getting Started
 

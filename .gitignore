@@ -89,4 +89,15 @@ local-setup/*/backups/
 local-setup/*/projects/*
 !local-setup/*/projects/.gitkeep
 
+# Redundant documentation (keep only essential docs)
+COMPLETION_STATUS.md
+INFRASTRUCTURE_COMPLETE.md
+HELM_APP_HELMFILE_IMPROVEMENTS.md
+PHASE_*_*.md
+PUSH_GUIDE.md
+SETUP_IMPROVEMENTS.md
+*_SUMMARY.md
+*_IMPROVEMENTS.md
+*_COMPLETE.md
+
 .env.example
