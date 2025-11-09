@@ -1,0 +1,21 @@
+apiVersion: v2
+name: observability
+description: Complete observability stack with Prometheus, Grafana, Loki, and Tempo
+version: 1.0.0
+appVersion: "1.0"
+type: application
+keywords:
+  - prometheus
+  - grafana
+  - loki
+  - tempo
+  - monitoring
+  - logging
+  - tracing
+maintainers:
+  - name: DevOps Team
+home: https://prometheus.io/
+sources:
+  - https://github.com/prometheus/prometheus
+  - https://github.com/grafana/grafana
+icon: https://prometheus.io/assets/prometheus_logo_grey.svg

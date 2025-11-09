@@ -1,0 +1,17 @@
+apiVersion: v2
+name: mongodb
+description: Production-grade MongoDB with write/read separation and auto-scaling
+version: 1.0.0
+appVersion: "7.0"
+type: application
+keywords:
+  - mongodb
+  - database
+  - nosql
+  - replication
+maintainers:
+  - name: DevOps Team
+home: https://www.mongodb.com/
+sources:
+  - https://github.com/mongodb/mongo
+icon: https://www.mongodb.com/assets/images/global/favicon.ico

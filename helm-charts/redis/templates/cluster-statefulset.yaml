@@ -1,0 +1,92 @@
+{{- if and (eq .Values.mode "cluster") .Values.cluster.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "redis.fullname" . }}-cluster
+  labels:
+    {{- include "redis.labels" . | nindent 4 }}
+    app: redis-cluster
+spec:
+  serviceName: {{ include "redis.fullname" . }}-cluster-headless
+  replicas: {{ .Values.cluster.replicas }}
+  selector:
+    matchLabels:
+      {{- include "redis.selectorLabels" . | nindent 6 }}
+      app: redis-cluster
+  template:
+    metadata:
+      labels:
+        {{- include "redis.selectorLabels" . | nindent 8 }}
+        app: redis-cluster
+    spec:
+      serviceAccountName: {{ include "redis.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: redis
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: redis
+          containerPort: 6379
+          protocol: TCP
+        - name: cluster
+          containerPort: 16379
+          protocol: TCP
+        resources:
+          {{- toYaml .Values.cluster.resources | nindent 10 }}
+        livenessProbe:
+          tcpSocket:
+            port: redis
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: config
+          mountPath: /usr/local/etc/redis/redis.conf
+          subPath: redis.conf
+        command:
+        - redis-server
+        - /usr/local/etc/redis/redis.conf
+      {{- if .Values.monitoring.enabled }}
+      - name: exporter
+        image: "{{ .Values.exporter.image.repository }}:{{ .Values.exporter.image.tag }}"
+        imagePullPolicy: {{ .Values.exporter.image.pullPolicy }}
+        ports:
+        - name: metrics
+          containerPort: 9121
+          protocol: TCP
+        resources:
+          {{- toYaml .Values.exporter.resources | nindent 10 }}
+      {{- end }}
+      volumes:
+      - name: config
+        configMap:
+          name: {{ include "redis.fullname" . }}-cluster-config
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+      labels:
+        {{- include "redis.labels" . | nindent 8 }}
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      {{- if .Values.cluster.storage.storageClass }}
+      storageClassName: {{ .Values.cluster.storage.storageClass }}
+      {{- end }}
+      resources:
+        requests:
+          storage: {{ .Values.cluster.storage.size }}
+{{- end }}

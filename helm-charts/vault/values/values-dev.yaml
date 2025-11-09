@@ -1,0 +1,54 @@
+# Vault Development Environment Configuration
+
+nameOverride: ""
+fullnameOverride: "vault"
+
+image:
+  repository: hashicorp/vault
+  tag: "1.15.6"
+  pullPolicy: IfNotPresent
+
+replicas: 1
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+storage:
+  size: 5Gi
+  storageClass: ""
+
+config:
+  ui: true
+  disableMlock: true
+  telemetry:
+    prometheusRetentionTime: 30s
+    disableHostname: true
+
+secrets:
+  rootToken: "ZGV2LXJvb3QtdG9rZW4="  # dev-root-token
+
+serviceAccount:
+  create: true
+
+podSecurityContext:
+  runAsUser: 100
+  runAsGroup: 1000
+  fsGroup: 1000
+  runAsNonRoot: true
+
+podDisruptionBudget:
+  enabled: false
+
+ingress:
+  enabled: false
+
+networkPolicy:
+  enabled: true
+  allowedNamespaces:
+    - myapp
+    - observability

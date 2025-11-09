@@ -1,0 +1,64 @@
+# Kafka Development Environment Configuration
+
+nameOverride: ""
+fullnameOverride: "kafka"
+
+kafka:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 1
+      memory: 1Gi
+  storage:
+    size: 10Gi
+    storageClass: ""
+  config:
+    offsetsTopicReplicationFactor: 1
+    defaultReplicationFactor: 1
+    minInsyncReplicas: 1
+    numPartitions: 1
+    logRetentionHours: 24
+
+zookeeper:
+  enabled: true
+  replicas: 1
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  storage:
+    size: 5Gi
+    storageClass: ""
+
+kafdrop:
+  enabled: true
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+  ingress:
+    enabled: false
+
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: false
+
+networkPolicy:
+  enabled: true
+  allowedNamespaces:
+    - myapp
+    - observability
+
+podDisruptionBudget:
+  enabled: false

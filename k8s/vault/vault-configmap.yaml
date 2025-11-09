@@ -6,9 +6,28 @@ metadata:
   labels:
     app: vault
   annotations:
-    kubernetes.io/description: "Vault configuration. Mount as local.json."
+    kubernetes.io/description: "Vault configuration. Mount as vault.hcl."
 data:
-  local.json: |
-    {
-      "ui": true
-    } 
+  vault.hcl: |
+    ui = true
+    
+    listener "tcp" {
+      address = "0.0.0.0:8200"
+      tls_disable = 1
+    }
+    
+    storage "file" {
+      path = "/vault/file"
+    }
+    
+    api_addr = "http://0.0.0.0:8200"
+    cluster_addr = "https://0.0.0.0:8201"
+    
+    # Disable mlock for containerized environments
+    disable_mlock = true
+    
+    # Enable Prometheus metrics
+    telemetry {
+      prometheus_retention_time = "30s"
+      disable_hostname = true
+    }

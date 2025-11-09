@@ -1,0 +1,138 @@
+nameOverride: ""
+fullnameOverride: ""
+
+prometheus:
+  enabled: true
+  image:
+    repository: prom/prometheus
+    tag: "v2.50.1"
+    pullPolicy: IfNotPresent
+  replicas: 1
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2
+      memory: 4Gi
+  storage:
+    size: 50Gi
+    storageClass: ""
+  retention:
+    time: 30d
+    size: 50GB
+  ingress:
+    enabled: false
+    className: nginx
+    host: prometheus.local
+  rbac:
+    create: true
+
+grafana:
+  enabled: true
+  image:
+    repository: grafana/grafana
+    tag: "10.3.3"
+    pullPolicy: IfNotPresent
+  replicas: 1
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1
+      memory: 2Gi
+  storage:
+    size: 10Gi
+    storageClass: ""
+  adminUser: admin
+  adminPassword: ""  # base64 encoded
+  plugins:
+    - grafana-piechart-panel
+    - grafana-clock-panel
+  ingress:
+    enabled: false
+    className: nginx
+    host: grafana.local
+  datasources:
+    prometheus:
+      enabled: true
+      url: http://prometheus:9090
+    loki:
+      enabled: true
+      url: http://loki:3100
+    tempo:
+      enabled: true
+      url: http://tempo:3200
+
+loki:
+  enabled: true
+  image:
+    repository: grafana/loki
+    tag: "2.9.5"
+    pullPolicy: IfNotPresent
+  replicas: 1
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 2
+      memory: 2Gi
+  storage:
+    size: 20Gi
+    storageClass: ""
+
+fluentBit:
+  enabled: true
+  image:
+    repository: grafana/fluent-bit-plugin-loki
+    tag: "2.9.5"
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+  rbac:
+    create: true
+
+tempo:
+  enabled: true
+  image:
+    repository: grafana/tempo
+    tag: "2.4.0"
+    pullPolicy: IfNotPresent
+  replicas: 1
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 2
+      memory: 2Gi
+  storage:
+    size: 20Gi
+    storageClass: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podSecurityContext:
+  runAsNonRoot: true
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+serviceMonitor:
+  enabled: true
+  interval: 30s
+
+networkPolicy:
+  enabled: true
+  allowAllNamespaces: true

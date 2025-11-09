@@ -1,0 +1,50 @@
+# Redis Pre-Production Environment Configuration
+
+nameOverride: ""
+fullnameOverride: "redis"
+
+image:
+  repository: redis
+  tag: "7.2-alpine"
+  pullPolicy: IfNotPresent
+
+mode: cluster
+
+standalone:
+  enabled: false
+
+cluster:
+  enabled: true
+  replicas: 6
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 1
+      memory: 1Gi
+  storage:
+    size: 20Gi
+    storageClass: "fast-ssd"
+  config:
+    clusterEnabled: "yes"
+    appendonly: "yes"
+
+sentinel:
+  enabled: false
+
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 15s
+
+networkPolicy:
+  enabled: true
+  allowedNamespaces:
+    - myapp
+    - observability
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 3

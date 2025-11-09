@@ -1,0 +1,54 @@
+{{- if .Values.configMap.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "mysql.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "mysql.labels" . | nindent 4 }}
+data:
+  my.cnf: |
+    [mysqld]
+    # Basic Settings
+    user = mysql
+    pid-file = /var/run/mysqld/mysqld.pid
+    socket = /var/run/mysqld/mysqld.sock
+    datadir = /var/lib/mysql
+    
+    # Character Set
+    character-set-server = {{ .Values.configMap.characterSet }}
+    collation-server = {{ .Values.configMap.collation }}
+    
+    # Connection Settings
+    max_connections = {{ .Values.configMap.maxConnections }}
+    max_connect_errors = {{ .Values.configMap.maxConnectErrors }}
+    
+    # Buffer Settings
+    innodb_buffer_pool_size = {{ .Values.configMap.innodbBufferPoolSize }}
+    innodb_log_file_size = {{ .Values.configMap.innodbLogFileSize }}
+    innodb_log_buffer_size = {{ .Values.configMap.innodbLogBufferSize }}
+    
+    # Binary Logging
+    {{- if .Values.replication.enabled }}
+    server-id = {{ .Values.configMap.serverId }}
+    log-bin = mysql-bin
+    binlog_format = ROW
+    gtid_mode = ON
+    enforce_gtid_consistency = ON
+    log_slave_updates = ON
+    {{- end }}
+    
+    # Performance
+    innodb_flush_log_at_trx_commit = {{ .Values.configMap.innodbFlushLogAtTrxCommit }}
+    sync_binlog = {{ .Values.configMap.syncBinlog }}
+    
+    # Slow Query Log
+    {{- if .Values.configMap.slowQueryLog }}
+    slow_query_log = 1
+    slow_query_log_file = /var/log/mysql/slow.log
+    long_query_time = {{ .Values.configMap.longQueryTime }}
+    {{- end }}
+    
+    [client]
+    default-character-set = {{ .Values.configMap.characterSet }}
+{{- end }}

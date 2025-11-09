@@ -1,0 +1,17 @@
+apiVersion: v2
+name: kafka
+description: Production-grade Kafka with Zookeeper and Kafdrop UI
+version: 1.0.0
+appVersion: "7.6.0"
+type: application
+keywords:
+  - kafka
+  - messaging
+  - streaming
+  - zookeeper
+maintainers:
+  - name: DevOps Team
+home: https://kafka.apache.org/
+sources:
+  - https://github.com/apache/kafka
+icon: https://kafka.apache.org/images/logo.png

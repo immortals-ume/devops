@@ -1,0 +1,17 @@
+apiVersion: v2
+name: redis
+description: Production-grade Redis with standalone, cluster, and sentinel modes
+version: 1.0.0
+appVersion: "7.2"
+type: application
+keywords:
+  - redis
+  - cache
+  - keyvalue
+  - cluster
+maintainers:
+  - name: DevOps Team
+home: https://redis.io/
+sources:
+  - https://github.com/redis/redis
+icon: https://redis.io/images/redis-white.png

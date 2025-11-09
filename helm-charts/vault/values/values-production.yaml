@@ -1,0 +1,57 @@
+# Vault Production Environment Configuration
+
+nameOverride: ""
+fullnameOverride: "vault"
+
+image:
+  repository: hashicorp/vault
+  tag: "1.15.6"
+  pullPolicy: IfNotPresent
+
+replicas: 3
+
+resources:
+  requests:
+    cpu: 1
+    memory: 2Gi
+  limits:
+    cpu: 2
+    memory: 4Gi
+
+storage:
+  size: 20Gi
+  storageClass: "fast-ssd"
+
+config:
+  ui: true
+  disableMlock: true
+  telemetry:
+    prometheusRetentionTime: 30s
+    disableHostname: true
+
+secrets:
+  rootToken: "cHJvZC1yb290LXRva2Vu"  # prod-root-token (CHANGE THIS!)
+
+serviceAccount:
+  create: true
+
+podSecurityContext:
+  runAsUser: 100
+  runAsGroup: 1000
+  fsGroup: 1000
+  runAsNonRoot: true
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+ingress:
+  enabled: true
+  className: nginx
+  host: vault.example.com
+
+networkPolicy:
+  enabled: true
+  allowedNamespaces:
+    - myapp
+    - observability

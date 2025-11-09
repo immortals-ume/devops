@@ -1,0 +1,72 @@
+# PostgreSQL Pre-Production Environment Configuration
+
+nameOverride: ""
+fullnameOverride: "postgres"
+
+image:
+  repository: postgres
+  tag: "16.2-alpine"
+  pullPolicy: IfNotPresent
+
+primary:
+  enabled: true
+  replicas: 1
+  resources:
+    requests:
+      cpu: 2
+      memory: 4Gi
+    limits:
+      cpu: 4
+      memory: 8Gi
+  storage:
+    size: 100Gi
+    storageClass: "fast-ssd"
+
+replica:
+  enabled: true
+  replicas: 2
+  resources:
+    requests:
+      cpu: 2
+      memory: 4Gi
+    limits:
+      cpu: 4
+      memory: 8Gi
+  storage:
+    size: 100Gi
+    storageClass: "fast-ssd"
+
+database:
+  name: preprod_db
+  user: postgres
+
+secrets:
+  postgresPassword: "cHJlcHJvZC1wYXNzd29yZA=="  # preprod-password
+  replicatorPassword: "cHJlcHJvZC1yZXBsaWNhdG9y"  # preprod-replicator
+
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 15s
+
+networkPolicy:
+  enabled: true
+  allowedNamespaces:
+    - myapp
+    - observability
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+                - postgres
+        topologyKey: "kubernetes.io/hostname"

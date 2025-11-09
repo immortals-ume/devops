@@ -1,0 +1,50 @@
+# Redis SIT Environment Configuration
+
+nameOverride: ""
+fullnameOverride: "redis"
+
+image:
+  repository: redis
+  tag: "7.2-alpine"
+  pullPolicy: IfNotPresent
+
+mode: standalone
+
+standalone:
+  enabled: true
+  replicas: 1
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 1
+      memory: 512Mi
+  storage:
+    size: 10Gi
+    storageClass: ""
+  config:
+    save: "900 1 300 10"
+    appendonly: "yes"
+
+cluster:
+  enabled: false
+
+sentinel:
+  enabled: false
+
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+
+networkPolicy:
+  enabled: true
+  allowedNamespaces:
+    - myapp
+    - observability
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1

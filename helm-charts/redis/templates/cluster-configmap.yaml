@@ -1,0 +1,28 @@
+{{- if and (eq .Values.mode "cluster") .Values.cluster.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "redis.fullname" . }}-cluster-config
+  labels:
+    {{- include "redis.labels" . | nindent 4 }}
+data:
+  redis.conf: |
+    bind 0.0.0.0
+    protected-mode no
+    port 6379
+    tcp-backlog 511
+    timeout 0
+    tcp-keepalive 300
+    daemonize no
+    supervised no
+    loglevel notice
+    logfile ""
+    databases 16
+    cluster-enabled {{ .Values.cluster.config.clusterEnabled }}
+    cluster-config-file nodes.conf
+    cluster-node-timeout 5000
+    appendonly {{ .Values.cluster.config.appendonly }}
+    appendfilename "appendonly.aof"
+    appendfsync everysec
+    dir /data
+{{- end }}

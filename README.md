@@ -184,24 +184,111 @@ make setup-mongo
   ```
 
 ### 2. Kubernetes (Production/Cloud)
-- Ensure your cluster supports LoadBalancer services (cloud provider or MetalLB for bare metal).
+
+#### Quick Start with Deployment Script
+
+The easiest way to deploy the entire infrastructure:
+
+```sh
+cd k8s
+./deploy.sh --all
+```
+
+Or deploy specific components:
+
+```sh
+./deploy.sh --db --cache              # Deploy only database and cache
+./deploy.sh --observability           # Deploy only monitoring stack
+./deploy.sh --queue                   # Deploy only Kafka
+```
+
+#### Manual Deployment
+
+- Ensure your cluster supports PersistentVolumes (cloud provider or local storage provisioner)
 - Apply namespaces first:
   ```sh
   kubectl apply -f k8s/myapp/namespaces.yaml
   ```
+- Label namespaces for NetworkPolicies:
+  ```sh
+  kubectl label namespace db name=db
+  kubectl label namespace cache name=cache
+  kubectl label namespace queue name=queue
+  kubectl label namespace observability name=observability
+  kubectl label namespace vault name=vault
+  kubectl label namespace myapp name=myapp
+  ```
 - Apply each stack:
   ```sh
-  kubectl apply -f k8s/db/
-  kubectl apply -f k8s/cache/
-  kubectl apply -f k8s/queue/
-  kubectl apply -f k8s/observability/
-  kubectl apply -f k8s/vault/
-  kubectl apply -f k8s/myapp/
+  # Database
+  kubectl apply -f k8s/db/postgres-configmap.yaml
+  kubectl apply -f k8s/db/postgres-secret.yaml
+  kubectl apply -f k8s/db/postgres-primary-statefulset.yaml
+  kubectl apply -f k8s/db/postgres-replica-statefulset.yaml
+  kubectl apply -f k8s/db/mysql-configmap.yaml
+  kubectl apply -f k8s/db/mysql-secret.yaml
+  kubectl apply -f k8s/db/mysql-deployment.yaml
+  kubectl apply -f k8s/db/mongodb-configmap.yaml
+  kubectl apply -f k8s/db/mongodb-secret.yaml
+  kubectl apply -f k8s/db/mongodb-write-deployment.yaml
+  kubectl apply -f k8s/db/mongodb-read-deployment.yaml
+  kubectl apply -f k8s/db/networkpolicy.yaml
+  
+  # Cache
+  kubectl apply -f k8s/cache/redis-standalone-configmap.yaml
+  kubectl apply -f k8s/cache/redis-standalone-deployment.yaml
+  kubectl apply -f k8s/cache/redis-cluster-configmap.yaml
+  kubectl apply -f k8s/cache/redis-cluster-statefulset.yaml
+  kubectl apply -f k8s/cache/networkpolicy.yaml
+  
+  # Queue
+  kubectl apply -f k8s/queue/zookeeper-statefulset.yaml
+  kubectl apply -f k8s/queue/kafka-configmap.yaml
+  kubectl apply -f k8s/queue/kafka-statefulset.yaml
+  kubectl apply -f k8s/queue/kafdrop-deployment.yaml
+  kubectl apply -f k8s/queue/networkpolicy.yaml
+  
+  # Observability
+  kubectl apply -f k8s/observability/prometheus-configmap.yaml
+  kubectl apply -f k8s/observability/prometheus-deployment.yaml
+  kubectl apply -f k8s/observability/grafana-secrets.yaml
+  kubectl apply -f k8s/observability/grafana-deployment.yaml
+  kubectl apply -f k8s/observability/loki-configmap.yaml
+  kubectl apply -f k8s/observability/loki-deployment.yaml
+  kubectl apply -f k8s/observability/fluent-bit-configmap.yaml
+  kubectl apply -f k8s/observability/fluent-bit-deployment.yaml
+  kubectl apply -f k8s/observability/tempo-deployment.yaml
+  kubectl apply -f k8s/observability/networkpolicy.yaml
+  
+  # Vault
+  kubectl apply -f k8s/vault/vault-secrets.yaml
+  kubectl apply -f k8s/vault/vault-configmap.yaml
+  kubectl apply -f k8s/vault/vault-deployment.yaml
+  kubectl apply -f k8s/vault/networkpolicy.yaml
+  
+  # Application (optional)
+  kubectl apply -f k8s/myapp/enterprise-app.yaml
   ```
-- For services with `type: LoadBalancer`, get external IPs:
-  ```sh
-  kubectl get svc -A | grep LoadBalancer
-  ```
+
+#### Verify Deployment
+
+```sh
+# Check all pods
+kubectl get pods -A
+
+# Check services
+kubectl get svc -A
+
+# Check PVCs
+kubectl get pvc -A
+
+# Access services via port-forward
+kubectl port-forward -n observability svc/grafana 3000:3000
+kubectl port-forward -n observability svc/prometheus 9090:9090
+kubectl port-forward -n queue svc/kafdrop 9000:9000
+```
+
+See [k8s/README.md](k8s/README.md) for detailed documentation.
 
 ### 3. Observability
 - Prometheus: http://<prometheus-loadbalancer-ip>:9090

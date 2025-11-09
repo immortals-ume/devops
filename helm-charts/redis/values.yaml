@@ -1,0 +1,106 @@
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  repository: redis
+  tag: "7.2-alpine"
+  pullPolicy: IfNotPresent
+
+exporter:
+  image:
+    repository: oliver006/redis_exporter
+    tag: "v1.58.0-alpine"
+    pullPolicy: IfNotPresent
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+# Deployment mode: standalone, cluster, or sentinel
+mode: standalone
+
+standalone:
+  enabled: true
+  replicas: 1
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 1
+      memory: 512Mi
+  storage:
+    size: 10Gi
+    storageClass: ""
+  config:
+    save: "900 1"
+    appendonly: "yes"
+
+cluster:
+  enabled: false
+  replicas: 6
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 1
+      memory: 512Mi
+  storage:
+    size: 10Gi
+    storageClass: ""
+  config:
+    clusterEnabled: "yes"
+    appendonly: "yes"
+
+sentinel:
+  enabled: false
+  replicas: 3
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podSecurityContext:
+  runAsUser: 999
+  runAsGroup: 999
+  fsGroup: 999
+  runAsNonRoot: true
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+
+networkPolicy:
+  enabled: true
+  allowedNamespaces:
+    - myapp
+    - observability
+
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app
+              operator: In
+              values:
+                - redis
+        topologyKey: "kubernetes.io/hostname"

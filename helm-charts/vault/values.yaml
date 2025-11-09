@@ -1,0 +1,57 @@
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  repository: hashicorp/vault
+  tag: "1.15.6"
+  pullPolicy: IfNotPresent
+
+replicas: 1
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 512Mi
+  limits:
+    cpu: 1
+    memory: 2Gi
+
+storage:
+  size: 10Gi
+  storageClass: ""
+
+config:
+  ui: true
+  disableMlock: true
+  telemetry:
+    prometheusRetentionTime: 30s
+    disableHostname: true
+
+secrets:
+  rootToken: ""  # base64 encoded
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podSecurityContext:
+  runAsUser: 100
+  runAsGroup: 1000
+  fsGroup: 1000
+  runAsNonRoot: true
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+ingress:
+  enabled: false
+  className: nginx
+  host: vault.local
+
+networkPolicy:
+  enabled: true
+  allowedNamespaces:
+    - myapp
+    - observability

@@ -1,21 +1,38 @@
 apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vault-sa
+  namespace: vault
+  labels:
+    app: vault
+---
+apiVersion: v1
 kind: Service
 metadata:
   name: vault
   namespace: vault
+  labels:
+    app: vault
 spec:
   ports:
-    - port: 8200
+    - name: http
+      port: 8200
       targetPort: 8200
+    - name: cluster
+      port: 8201
+      targetPort: 8201
   selector:
     app: vault
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: vault
   namespace: vault
+  labels:
+    app: vault
 spec:
+  serviceName: vault
   replicas: 1
   selector:
     matchLabels:
@@ -25,61 +42,118 @@ spec:
       labels:
         app: vault
     spec:
+      serviceAccountName: vault-sa
+      securityContext:
+        runAsUser: 100
+        runAsGroup: 1000
+        fsGroup: 1000
+        runAsNonRoot: true
+      initContainers:
+        - name: init-permissions
+          image: busybox:1.36
+          command: ['sh', '-c', 'chown -R 100:1000 /vault/file || true']
+          volumeMounts:
+            - name: vault-data
+              mountPath: /vault/file
+          securityContext:
+            runAsUser: 0
       containers:
         - name: vault
-          image: hashicorp/vault:1.18.3
+          image: hashicorp/vault:1.15.6
           ports:
-            - containerPort: 8200
+            - name: http
+              containerPort: 8200
+            - name: cluster
+              containerPort: 8201
           env:
-            - name: VAULT_DEV_ROOT_TOKEN_ID
+            - name: VAULT_ADDR
+              value: "http://127.0.0.1:8200"
+            - name: VAULT_API_ADDR
+              value: "http://$(POD_IP):8200"
+            - name: VAULT_CLUSTER_ADDR
+              value: "https://$(POD_IP):8201"
+            - name: POD_IP
               valueFrom:
-                secretKeyRef:
-                  name: vault-secrets
-                  key: root-token
-            - name: VAULT_DEV_LISTEN_ADDRESS
-              value: "0.0.0.0:8200"
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: SKIP_SETCAP
+              value: "true"
+          args:
+            - "server"
+            - "-config=/vault/config/vault.hcl"
           volumeMounts:
             - name: vault-data
               mountPath: /vault/file
             - name: vault-config
-              mountPath: /vault/config/local.json
-              subPath: local.json
+              mountPath: /vault/config
           livenessProbe:
             httpGet:
-              path: /v1/sys/health
+              path: /v1/sys/health?standbyok=true
               port: 8200
-            initialDelaySeconds: 10
-            periodSeconds: 30
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
             failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /v1/sys/health
+              path: /v1/sys/health?standbyok=true&sealedcode=204&uninitcode=204
               port: 8200
-            initialDelaySeconds: 5
-            periodSeconds: 30
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
             failureThreshold: 3
           resources:
             requests:
-              cpu: 250m
-              memory: 256Mi
+              cpu: 500m
+              memory: 512Mi
             limits:
               cpu: 1
-              memory: 1Gi
+              memory: 2Gi
       volumes:
-        - name: vault-data
-          persistentVolumeClaim:
-            claimName: vault-data
         - name: vault-config
           configMap:
             name: vault-config
+  volumeClaimTemplates:
+    - metadata:
+        name: vault-data
+        labels:
+          app: vault
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 10Gi
 ---
-apiVersion: v1
-kind: PersistentVolumeClaim
+apiVersion: policy/v1
+kind: PodDisruptionBudget
 metadata:
-  name: vault-data
+  name: vault-pdb
   namespace: vault
 spec:
-  accessModes: [ "ReadWriteOnce" ]
-  resources:
-    requests:
-      storage: 10Gi 
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: vault
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vault-ingress
+  namespace: vault
+  annotations:
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: vault.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: vault
+                port:
+                  number: 8200

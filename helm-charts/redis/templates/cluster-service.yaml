@@ -1,0 +1,52 @@
+{{- if and (eq .Values.mode "cluster") .Values.cluster.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "redis.fullname" . }}-cluster
+  labels:
+    {{- include "redis.labels" . | nindent 4 }}
+    app: redis-cluster
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6379
+    targetPort: redis
+    protocol: TCP
+    name: redis
+  - port: 16379
+    targetPort: cluster
+    protocol: TCP
+    name: cluster
+  {{- if .Values.monitoring.enabled }}
+  - port: 9121
+    targetPort: metrics
+    protocol: TCP
+    name: metrics
+  {{- end }}
+  selector:
+    {{- include "redis.selectorLabels" . | nindent 4 }}
+    app: redis-cluster
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "redis.fullname" . }}-cluster-headless
+  labels:
+    {{- include "redis.labels" . | nindent 4 }}
+    app: redis-cluster
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+  - port: 6379
+    targetPort: redis
+    protocol: TCP
+    name: redis
+  - port: 16379
+    targetPort: cluster
+    protocol: TCP
+    name: cluster
+  selector:
+    {{- include "redis.selectorLabels" . | nindent 4 }}
+    app: redis-cluster
+{{- end }}

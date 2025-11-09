@@ -1,0 +1,63 @@
+# MySQL Production Environment Configuration
+
+nameOverride: ""
+fullnameOverride: "mysql"
+
+image:
+  repository: mysql
+  tag: "8.4"
+  pullPolicy: IfNotPresent
+
+replicas: 1
+
+resources:
+  requests:
+    cpu: 4
+    memory: 8Gi
+  limits:
+    cpu: 8
+    memory: 16Gi
+
+storage:
+  size: 200Gi
+  storageClass: "fast-ssd"
+
+database:
+  name: production_db
+  user: produser
+
+secrets:
+  rootPassword: "cHJvZC1yb290LXBhc3N3b3Jk"  # prod-root-password (CHANGE THIS!)
+  user: "cHJvZHVzZXI="  # produser
+  userPassword: "cHJvZC11c2VyLXBhc3N3b3Jk"  # prod-user-password (CHANGE THIS!)
+
+config:
+  maxConnections: 500
+  innodbBufferPoolSize: "4G"
+
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 15s
+
+networkPolicy:
+  enabled: true
+  allowedNamespaces:
+    - myapp
+    - observability
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+                - mysql
+        topologyKey: "kubernetes.io/hostname"

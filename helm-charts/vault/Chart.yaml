@@ -1,0 +1,17 @@
+apiVersion: v2
+name: vault
+description: Production-grade HashiCorp Vault for secrets management
+version: 1.0.0
+appVersion: "1.15.6"
+type: application
+keywords:
+  - vault
+  - secrets
+  - security
+  - hashicorp
+maintainers:
+  - name: DevOps Team
+home: https://www.vaultproject.io/
+sources:
+  - https://github.com/hashicorp/vault
+icon: https://www.vaultproject.io/img/logo-hashicorp.svg

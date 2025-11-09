@@ -1,0 +1,114 @@
+nameOverride: ""
+fullnameOverride: ""
+
+kafka:
+  image:
+    repository: confluentinc/cp-kafka
+    tag: "7.6.0"
+    pullPolicy: IfNotPresent
+  replicas: 3
+  resources:
+    requests:
+      cpu: 1
+      memory: 1Gi
+    limits:
+      cpu: 2
+      memory: 2Gi
+  storage:
+    size: 20Gi
+    storageClass: ""
+  config:
+    offsetsTopicReplicationFactor: 3
+    defaultReplicationFactor: 3
+    minInsyncReplicas: 2
+    numPartitions: 3
+    logRetentionHours: 168
+  exporter:
+    enabled: true
+    image:
+      repository: danielqsj/kafka-exporter
+      tag: "v1.7.0"
+      pullPolicy: IfNotPresent
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+
+zookeeper:
+  enabled: true
+  image:
+    repository: confluentinc/cp-zookeeper
+    tag: "7.6.0"
+    pullPolicy: IfNotPresent
+  replicas: 3
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 1
+      memory: 1Gi
+  storage:
+    size: 10Gi
+    storageClass: ""
+
+kafdrop:
+  enabled: true
+  image:
+    repository: obsidiandynamics/kafdrop
+    tag: "4.0.1"
+    pullPolicy: IfNotPresent
+  replicas: 1
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  ingress:
+    enabled: false
+    className: nginx
+    host: kafdrop.local
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podSecurityContext:
+  runAsUser: 1000
+  runAsGroup: 1000
+  fsGroup: 1000
+  runAsNonRoot: true
+
+podDisruptionBudget:
+  enabled: true
+  maxUnavailable: 1
+
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+
+networkPolicy:
+  enabled: true
+  allowedNamespaces:
+    - myapp
+    - observability
+
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app
+              operator: In
+              values:
+                - kafka
+                - zookeeper
+        topologyKey: "kubernetes.io/hostname"

@@ -1,0 +1,72 @@
+# PostgreSQL UAT Environment Configuration
+
+nameOverride: ""
+fullnameOverride: "postgres"
+
+image:
+  repository: postgres
+  tag: "16.2-alpine"
+  pullPolicy: IfNotPresent
+
+primary:
+  enabled: true
+  replicas: 1
+  resources:
+    requests:
+      cpu: 1
+      memory: 2Gi
+    limits:
+      cpu: 2
+      memory: 4Gi
+  storage:
+    size: 50Gi
+    storageClass: "standard"
+
+replica:
+  enabled: true
+  replicas: 2
+  resources:
+    requests:
+      cpu: 1
+      memory: 2Gi
+    limits:
+      cpu: 2
+      memory: 4Gi
+  storage:
+    size: 50Gi
+    storageClass: "standard"
+
+database:
+  name: uat_db
+  user: postgres
+
+secrets:
+  postgresPassword: "dWF0LXBhc3N3b3Jk"  # uat-password
+  replicatorPassword: "dWF0LXJlcGxpY2F0b3I="  # uat-replicator
+
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+
+networkPolicy:
+  enabled: true
+  allowedNamespaces:
+    - myapp
+    - observability
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+                - postgres
+        topologyKey: "kubernetes.io/hostname"

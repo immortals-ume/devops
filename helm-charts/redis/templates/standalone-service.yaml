@@ -1,0 +1,25 @@
+{{- if and (eq .Values.mode "standalone") .Values.standalone.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "redis.fullname" . }}-standalone
+  labels:
+    {{- include "redis.labels" . | nindent 4 }}
+    app: redis-standalone
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6379
+    targetPort: redis
+    protocol: TCP
+    name: redis
+  {{- if .Values.monitoring.enabled }}
+  - port: 9121
+    targetPort: metrics
+    protocol: TCP
+    name: metrics
+  {{- end }}
+  selector:
+    {{- include "redis.selectorLabels" . | nindent 4 }}
+    app: redis-standalone
+{{- end }}

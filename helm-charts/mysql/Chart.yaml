@@ -1,0 +1,16 @@
+apiVersion: v2
+name: mysql
+description: Production-grade MySQL with monitoring and high availability
+version: 1.0.0
+appVersion: "8.4"
+type: application
+keywords:
+  - mysql
+  - database
+  - sql
+maintainers:
+  - name: DevOps Team
+home: https://www.mysql.com/
+sources:
+  - https://github.com/mysql/mysql-server
+icon: https://labs.mysql.com/common/logos/mysql-logo.svg

@@ -1,0 +1,61 @@
+# MongoDB Development Environment Configuration
+
+nameOverride: ""
+fullnameOverride: "mongodb"
+
+image:
+  repository: mongo
+  tag: "7.0"
+  pullPolicy: IfNotPresent
+
+write:
+  enabled: true
+  replicas: 1
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 1
+      memory: 1Gi
+  storage:
+    size: 10Gi
+    storageClass: ""
+
+read:
+  enabled: false
+  replicas: 1
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 1
+      memory: 1Gi
+  storage:
+    size: 10Gi
+    storageClass: ""
+  autoscaling:
+    enabled: false
+
+secrets:
+  rootPassword: "ZGV2LXJvb3QtcGFzc3dvcmQ="  # dev-root-password
+  user: "ZGV2dXNlcg=="  # devuser
+  userPassword: "ZGV2LXVzZXItcGFzc3dvcmQ="  # dev-user-password
+
+config:
+  authorization: enabled
+
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: false
+
+networkPolicy:
+  enabled: true
+  allowedNamespaces:
+    - myapp
+    - observability
+
+podDisruptionBudget:
+  enabled: false

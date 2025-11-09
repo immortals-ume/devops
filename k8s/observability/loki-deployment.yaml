@@ -1,11 +1,22 @@
 apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: loki-sa
+  namespace: observability
+  labels:
+    app: loki
+---
+apiVersion: v1
 kind: Service
 metadata:
   name: loki
   namespace: observability
+  labels:
+    app: loki
 spec:
   ports:
-    - port: 3100
+    - name: http
+      port: 3100
       targetPort: 3100
   selector:
     app: loki
@@ -15,6 +26,8 @@ kind: Deployment
 metadata:
   name: loki
   namespace: observability
+  labels:
+    app: loki
 spec:
   replicas: 1
   selector:
@@ -25,40 +38,58 @@ spec:
       labels:
         app: loki
     spec:
+      serviceAccountName: loki-sa
+      securityContext:
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        runAsNonRoot: true
+      initContainers:
+        - name: init-permissions
+          image: busybox:1.36
+          command: ['sh', '-c', 'chown -R 10001:10001 /loki || true']
+          volumeMounts:
+            - name: loki-data
+              mountPath: /loki
+          securityContext:
+            runAsUser: 0
       containers:
         - name: loki
-          image: grafana/loki:3.0.0
+          image: grafana/loki:2.9.5
           args:
-            - "-config.file=/etc/loki/local-config.yaml"
+            - "-config.file=/etc/loki/loki-config.yaml"
           ports:
-            - containerPort: 3100
+            - name: http
+              containerPort: 3100
           volumeMounts:
             - name: loki-data
               mountPath: /loki
             - name: loki-config
-              mountPath: /etc/loki/local-config.yaml
+              mountPath: /etc/loki/loki-config.yaml
               subPath: loki-config.yaml
           livenessProbe:
             httpGet:
               path: /ready
               port: 3100
-            initialDelaySeconds: 10
-            periodSeconds: 30
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
             failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /ready
               port: 3100
-            initialDelaySeconds: 5
-            periodSeconds: 30
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
             failureThreshold: 3
           resources:
             requests:
-              cpu: 250m
-              memory: 256Mi
+              cpu: 500m
+              memory: 512Mi
             limits:
-              cpu: 1
-              memory: 1Gi
+              cpu: 2
+              memory: 2Gi
       volumes:
         - name: loki-data
           persistentVolumeClaim:
@@ -72,8 +103,21 @@ kind: PersistentVolumeClaim
 metadata:
   name: loki-data
   namespace: observability
+  labels:
+    app: loki
 spec:
   accessModes: [ "ReadWriteOnce" ]
   resources:
     requests:
-      storage: 10Gi 
+      storage: 20Gi
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: loki-pdb
+  namespace: observability
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: loki

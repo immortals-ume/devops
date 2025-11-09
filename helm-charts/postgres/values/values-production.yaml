@@ -1,0 +1,72 @@
+# PostgreSQL Production Environment Configuration
+
+nameOverride: ""
+fullnameOverride: "postgres"
+
+image:
+  repository: postgres
+  tag: "16.2-alpine"
+  pullPolicy: IfNotPresent
+
+primary:
+  enabled: true
+  replicas: 1
+  resources:
+    requests:
+      cpu: 4
+      memory: 8Gi
+    limits:
+      cpu: 8
+      memory: 16Gi
+  storage:
+    size: 200Gi
+    storageClass: "fast-ssd"
+
+replica:
+  enabled: true
+  replicas: 3
+  resources:
+    requests:
+      cpu: 4
+      memory: 8Gi
+    limits:
+      cpu: 8
+      memory: 16Gi
+  storage:
+    size: 200Gi
+    storageClass: "fast-ssd"
+
+database:
+  name: production_db
+  user: postgres
+
+secrets:
+  postgresPassword: "cHJvZHVjdGlvbi1wYXNzd29yZA=="  # production-password (CHANGE THIS!)
+  replicatorPassword: "cHJvZHVjdGlvbi1yZXBsaWNhdG9y"  # production-replicator (CHANGE THIS!)
+
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 15s
+
+networkPolicy:
+  enabled: true
+  allowedNamespaces:
+    - myapp
+    - observability
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 2
+
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+                - postgres
+        topologyKey: "kubernetes.io/hostname"

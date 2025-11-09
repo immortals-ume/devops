@@ -1,0 +1,50 @@
+# MySQL Development Environment Configuration
+
+nameOverride: ""
+fullnameOverride: "mysql"
+
+image:
+  repository: mysql
+  tag: "8.4"
+  pullPolicy: IfNotPresent
+
+replicas: 1
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 1
+    memory: 1Gi
+
+storage:
+  size: 10Gi
+  storageClass: ""
+
+database:
+  name: dev_db
+  user: devuser
+
+secrets:
+  rootPassword: "ZGV2LXJvb3QtcGFzc3dvcmQ="  # dev-root-password
+  user: "ZGV2dXNlcg=="  # devuser
+  userPassword: "ZGV2LXVzZXItcGFzc3dvcmQ="  # dev-user-password
+
+config:
+  maxConnections: 100
+  innodbBufferPoolSize: "128M"
+
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: false
+
+networkPolicy:
+  enabled: true
+  allowedNamespaces:
+    - myapp
+    - observability
+
+podDisruptionBudget:
+  enabled: false

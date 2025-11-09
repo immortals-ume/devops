@@ -1,11 +1,57 @@
 apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: prometheus-sa
+  namespace: observability
+  labels:
+    app: prometheus
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: prometheus
+spec:
+  rules:
+    - apiGroups: [""]
+      resources:
+        - nodes
+        - nodes/proxy
+        - services
+        - endpoints
+        - pods
+      verbs: ["get", "list", "watch"]
+    - apiGroups:
+        - extensions
+      resources:
+        - ingresses
+      verbs: ["get", "list", "watch"]
+    - nonResourceURLs: ["/metrics"]
+      verbs: ["get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: prometheus
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus
+subjects:
+  - kind: ServiceAccount
+    name: prometheus-sa
+    namespace: observability
+---
+apiVersion: v1
 kind: Service
 metadata:
   name: prometheus
   namespace: observability
+  labels:
+    app: prometheus
 spec:
   ports:
-    - port: 9090
+    - name: http
+      port: 9090
       targetPort: 9090
   selector:
     app: prometheus
@@ -15,6 +61,8 @@ kind: Deployment
 metadata:
   name: prometheus
   namespace: observability
+  labels:
+    app: prometheus
 spec:
   replicas: 1
   selector:
@@ -25,14 +73,35 @@ spec:
       labels:
         app: prometheus
     spec:
+      serviceAccountName: prometheus-sa
+      securityContext:
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+        runAsNonRoot: true
+      initContainers:
+        - name: init-permissions
+          image: busybox:1.36
+          command: ['sh', '-c', 'chown -R 65534:65534 /prometheus || true']
+          volumeMounts:
+            - name: prometheus-data
+              mountPath: /prometheus
+          securityContext:
+            runAsUser: 0
       containers:
         - name: prometheus
-          image: prom/prometheus:latest
+          image: prom/prometheus:v2.50.1
           ports:
-            - containerPort: 9090
+            - name: http
+              containerPort: 9090
           args:
             - "--config.file=/etc/prometheus/prometheus.yml"
             - "--storage.tsdb.path=/prometheus"
+            - "--storage.tsdb.retention.time=30d"
+            - "--storage.tsdb.retention.size=50GB"
+            - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+            - "--web.console.templates=/usr/share/prometheus/consoles"
+            - "--web.enable-lifecycle"
           volumeMounts:
             - name: prometheus-data
               mountPath: /prometheus
@@ -41,25 +110,27 @@ spec:
               subPath: prometheus.yml
           livenessProbe:
             httpGet:
-              path: /
+              path: /-/healthy
               port: 9090
-            initialDelaySeconds: 10
-            periodSeconds: 30
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
             failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /
+              path: /-/ready
               port: 9090
-            initialDelaySeconds: 5
-            periodSeconds: 30
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
             failureThreshold: 3
           resources:
             requests:
-              cpu: 250m
-              memory: 256Mi
-            limits:
-              cpu: 1
+              cpu: 500m
               memory: 1Gi
+            limits:
+              cpu: 2
+              memory: 4Gi
       volumes:
         - name: prometheus-data
           persistentVolumeClaim:
@@ -73,8 +144,42 @@ kind: PersistentVolumeClaim
 metadata:
   name: prometheus-data
   namespace: observability
+  labels:
+    app: prometheus
 spec:
   accessModes: [ "ReadWriteOnce" ]
   resources:
     requests:
-      storage: 10Gi 
+      storage: 50Gi
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: prometheus-pdb
+  namespace: observability
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: prometheus
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: prometheus-ingress
+  namespace: observability
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: prometheus.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: prometheus
+                port:
+                  number: 9090

@@ -1,0 +1,17 @@
+apiVersion: v2
+name: postgres
+description: Production-grade PostgreSQL with primary-replica setup and monitoring
+version: 1.0.0
+appVersion: "16.2"
+type: application
+keywords:
+  - postgresql
+  - database
+  - sql
+  - replication
+maintainers:
+  - name: DevOps Team
+home: https://www.postgresql.org/
+sources:
+  - https://github.com/postgres/postgres
+icon: https://www.postgresql.org/media/img/about/press/elephant.png

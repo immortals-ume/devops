@@ -1,0 +1,113 @@
+# Observability Production Environment Configuration
+
+nameOverride: ""
+fullnameOverride: ""
+
+prometheus:
+  enabled: true
+  replicas: 2
+  resources:
+    requests:
+      cpu: 2
+      memory: 8Gi
+    limits:
+      cpu: 4
+      memory: 16Gi
+  storage:
+    size: 200Gi
+    storageClass: "fast-ssd"
+  retention:
+    time: 90d
+    size: 180GB
+  ingress:
+    enabled: true
+    className: nginx
+    host: prometheus.example.com
+  rbac:
+    create: true
+
+grafana:
+  enabled: true
+  replicas: 2
+  resources:
+    requests:
+      cpu: 1
+      memory: 2Gi
+    limits:
+      cpu: 2
+      memory: 4Gi
+  storage:
+    size: 20Gi
+    storageClass: "standard"
+  adminUser: admin
+  adminPassword: "cHJvZC1hZG1pbi1wYXNzd29yZA=="  # prod-admin-password (CHANGE THIS!)
+  plugins:
+    - grafana-piechart-panel
+    - grafana-clock-panel
+    - grafana-worldmap-panel
+  ingress:
+    enabled: true
+    className: nginx
+    host: grafana.example.com
+  datasources:
+    prometheus:
+      enabled: true
+      url: http://prometheus:9090
+    loki:
+      enabled: true
+      url: http://loki:3100
+    tempo:
+      enabled: true
+      url: http://tempo:3200
+
+loki:
+  enabled: true
+  replicas: 2
+  resources:
+    requests:
+      cpu: 1
+      memory: 4Gi
+    limits:
+      cpu: 4
+      memory: 8Gi
+  storage:
+    size: 100Gi
+    storageClass: "standard"
+
+fluentBit:
+  enabled: true
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 1
+      memory: 512Mi
+  rbac:
+    create: true
+
+tempo:
+  enabled: true
+  replicas: 2
+  resources:
+    requests:
+      cpu: 1
+      memory: 4Gi
+    limits:
+      cpu: 4
+      memory: 8Gi
+  storage:
+    size: 100Gi
+    storageClass: "standard"
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+serviceMonitor:
+  enabled: true
+  interval: 15s
+
+networkPolicy:
+  enabled: true
+  allowAllNamespaces: true
