@@ -1,0 +1,57 @@
+name: CD - Kubernetes Deployment
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'k8s/**'
+      - '.github/workflows/cd-kubernetes.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - sit
+          - uat
+          - preprod
+          - production
+
+jobs:
+  deploy-k8s:
+    name: Deploy to Kubernetes
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'v1.28.0'
+
+      - name: Configure kubectl
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
+
+      - name: Deploy to Kubernetes
+        run: |
+          cd k8s
+          ./deploy.sh --all
+        env:
+          ENVIRONMENT: ${{ github.event.inputs.environment || 'dev' }}
+
+      - name: Verify deployment
+        run: |
+          kubectl get pods -A
+          kubectl get svc -A
+
+      - name: Run smoke tests
+        run: |
+          kubectl run smoke-test --image=curlimages/curl:latest --rm -i --restart=Never -- \
+            curl -f http://myapp.myapp.svc.cluster.local || exit 1

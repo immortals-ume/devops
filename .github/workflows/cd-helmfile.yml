@@ -1,0 +1,74 @@
+name: CD - Helmfile Deployment
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'helmfile/**'
+      - '.github/workflows/cd-helmfile.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - sit
+          - uat
+          - preprod
+          - production
+      action:
+        description: 'Action'
+        required: true
+        default: 'apply'
+        type: choice
+        options:
+          - diff
+          - apply
+          - sync
+          - destroy
+
+jobs:
+  deploy-helmfile:
+    name: Deploy with Helmfile
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'dev' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v3
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v3
+
+      - name: Install Helmfile
+        run: |
+          wget https://github.com/helmfile/helmfile/releases/download/v0.159.0/helmfile_0.159.0_linux_amd64.tar.gz
+          tar -xzf helmfile_0.159.0_linux_amd64.tar.gz
+          sudo mv helmfile /usr/local/bin/
+          helmfile version
+
+      - name: Install Helm plugins
+        run: |
+          helm plugin install https://github.com/databus23/helm-diff || true
+
+      - name: Configure kubectl
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
+
+      - name: Helmfile ${{ github.event.inputs.action || 'apply' }}
+        run: |
+          cd helmfile
+          helmfile -e ${{ github.event.inputs.environment || 'dev' }} \
+            ${{ github.event.inputs.action || 'apply' }}
+
+      - name: Verify deployment
+        if: github.event.inputs.action != 'destroy'
+        run: |
+          helmfile -e ${{ github.event.inputs.environment || 'dev' }} status
+          kubectl get pods -A
