@@ -39,22 +39,23 @@ This repository contains Docker Compose configurations for various infrastructur
 
 ```
 .
-├── local-setup/            # Local development with Docker Compose
-│   ├── db/                 # SQL databases (PostgreSQL, MySQL, MariaDB, MSSQL, Oracle)
-│   ├── nosql/              # NoSQL databases (MongoDB, Cassandra, CouchDB)
-│   ├── inmemory/           # In-memory databases (H2, Ignite, Hazelcast, Memcached)
-│   ├── cache/              # Redis caching (standalone, cluster, sentinel)
-│   ├── queue/              # Message queues (Kafka, RabbitMQ, ActiveMQ)
-│   ├── observability/      # Monitoring stack (Prometheus, Grafana, Loki, Tempo)
-│   ├── vault/              # HashiCorp Vault for secrets
-│   └── sonarqube/          # Code quality analysis
-├── k8s/                    # Kubernetes manifests (works with any K8s cluster)
-├── helm-charts/            # Helm charts (7 infrastructure charts)
-├── helm-app/               # Application Helm chart
-├── helmfile/               # Multi-service orchestration
-├── .github/workflows/      # GitHub Actions CI/CD (5 workflows)
-├── .gitlab-ci.yml          # GitLab CI pipeline
-└── Jenkinsfile             # Jenkins declarative pipeline
+├── local/                      # All local infrastructure
+│   ├── docker-compose/         # Docker Compose for local development
+│   │   ├── db/                 # SQL databases
+│   │   ├── nosql/              # NoSQL databases
+│   │   ├── inmemory/           # In-memory databases
+│   │   ├── cache/              # Redis caching
+│   │   ├── queue/              # Message queues
+│   │   ├── observability/      # Monitoring stack
+│   │   ├── vault/              # HashiCorp Vault
+│   │   └── sonarqube/          # Code quality
+│   ├── kubernetes/             # K8s manifests (any cluster)
+│   ├── helm-charts/            # Infrastructure Helm charts (7 charts)
+│   ├── helm-app/               # Application Helm chart
+│   └── helmfile/               # Multi-service orchestration
+├── .github/workflows/          # GitHub Actions CI/CD (5 workflows)
+├── .gitlab-ci.yml              # GitLab CI pipeline
+└── Jenkinsfile                 # Jenkins declarative pipeline
 ```
 
 ### Phase 2: Cloud Infrastructure (🔜 Planned)
@@ -87,29 +88,44 @@ This repository contains Docker Compose configurations for various infrastructur
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/infra-devops.git
-   cd infra-devops
+   git clone https://github.com/immortals-ume/devops.git
+   cd devops
    ```
 
-2. Create a `.env` file with necessary environment variables (see `.env.example` if available)
+2. Choose your deployment method:
 
-3. Start the desired infrastructure component:
-   ```bash
-   # Quick start with Makefile
-   make up-all              # Start all local services
-   make up-db               # Start SQL databases only
-   make up-nosql            # Start NoSQL databases only
-   make up-inmemory         # Start in-memory databases only
-   make up-cache            # Start Redis cache
-   make up-queue            # Start Kafka
-   make up-observability    # Start monitoring stack
-   make up-vault            # Start Vault
+### Option 1: Docker Compose (Local Development)
 
-   # Or use docker-compose directly
-   cd local-setup/db && docker-compose up -d
-   cd local-setup/nosql && docker-compose up -d
-   cd local-setup/cache && docker-compose up -d
-   ```
+```bash
+cd local/docker-compose
+make up-all              # Start all services
+make up-db               # Start databases only
+make up-cache            # Start Redis
+make up-queue            # Start Kafka
+make up-observability    # Start monitoring
+```
+
+### Option 2: Kubernetes
+
+```bash
+cd local/kubernetes
+./deploy.sh --all        # Deploy everything
+./deploy.sh --db         # Deploy databases only
+```
+
+### Option 3: Helm Charts
+
+```bash
+cd local/helm-charts
+./deploy-all.sh --all --env dev
+```
+
+### Option 4: Helmfile
+
+```bash
+cd local/helmfile
+helmfile -e dev apply
+```
 
 ## Component Details
 

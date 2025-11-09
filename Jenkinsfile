@@ -39,7 +39,7 @@ pipeline {
                 stage('Validate YAML') {
                     steps {
                         sh '''
-                            yamllint -c .yamllint k8s/ helm-charts/ helmfile/ || true
+                            yamllint -c .yamllint local/kubernetes/ local/helm-charts/ local/helmfile/ || true
                         '''
                     }
                 }
@@ -47,7 +47,7 @@ pipeline {
                 stage('Validate Helm Charts') {
                     steps {
                         sh '''
-                            cd helm-charts
+                            cd local/helm-charts
                             for chart in */; do
                                 helm lint "$chart"
                             done
@@ -58,8 +58,8 @@ pipeline {
                 stage('Validate Kubernetes') {
                     steps {
                         sh '''
-                            kubectl apply --dry-run=client -f k8s/db/
-                            kubectl apply --dry-run=client -f k8s/cache/
+                            kubectl apply --dry-run=client -f local/kubernetes/db/
+                            kubectl apply --dry-run=client -f local/kubernetes/cache/
                         '''
                     }
                 }
@@ -160,13 +160,13 @@ pipeline {
             }
             steps {
                 sh '''
-                    cd helm-charts
+                    cd local/helm-charts
                     mkdir -p packages
                     for chart in */; do
                         helm package "$chart" -d packages/
                     done
                 '''
-                archiveArtifacts artifacts: 'helm-charts/packages/*.tgz', fingerprint: true
+                archiveArtifacts artifacts: 'local/helm-charts/packages/*.tgz', fingerprint: true
             }
         }
         
@@ -179,9 +179,9 @@ pipeline {
                 script {
                     withKubeConfig([credentialsId: 'kubeconfig-dev']) {
                         sh '''
-                            cd helmfile
-                            helmfile -e dev diff
-                            helmfile -e dev apply
+                            cd local/helmfile
+                            local/helmfile -e dev diff
+                            local/helmfile -e dev apply
                         '''
                     }
                 }
@@ -197,9 +197,9 @@ pipeline {
                 script {
                     withKubeConfig([credentialsId: 'kubeconfig-staging']) {
                         sh '''
-                            cd helmfile
-                            helmfile -e uat diff
-                            helmfile -e uat apply
+                            cd local/helmfile
+                            local/helmfile -e uat diff
+                            local/helmfile -e uat apply
                         '''
                     }
                 }
@@ -215,9 +215,9 @@ pipeline {
                 script {
                     withKubeConfig([credentialsId: 'kubeconfig-prod']) {
                         sh '''
-                            cd helmfile
-                            helmfile -e production diff
-                            helmfile -e production apply --wait
+                            cd local/helmfile
+                            local/helmfile -e production diff
+                            local/helmfile -e production apply --wait
                         '''
                     }
                 }

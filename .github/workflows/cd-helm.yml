@@ -4,8 +4,8 @@ on:
   push:
     branches: [main, master]
     paths:
-      - 'helm-charts/**'
-      - 'helm-app/**'
+      - 'local/local/local/helm-charts/**'
+      - 'local/hp/**'
       - '.github/workflows/cd-helm.yml'
   workflow_dispatch:
     inputs:

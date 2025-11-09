@@ -4,7 +4,7 @@ on:
   push:
     branches: [main, master]
     paths:
-      - 'k8s/**'
+      - 'local/kubernetes/**'
       - '.github/workflows/cd-kubernetes.yml'
   workflow_dispatch:
     inputs:
@@ -41,7 +41,7 @@ jobs:
 
       - name: Deploy to Kubernetes
         run: |
-          cd k8s
+          cd local/kubernetes
           ./deploy.sh --all
         env:
           ENVIRONMENT: ${{ github.event.inputs.environment || 'dev' }}

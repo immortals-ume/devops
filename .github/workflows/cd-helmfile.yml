@@ -4,7 +4,7 @@ on:
   push:
     branches: [main, master]
     paths:
-      - 'helmfile/**'
+      - 'local/local/helmfile/**'
       - '.github/workflows/cd-helmfile.yml'
   workflow_dispatch:
     inputs:
@@ -47,7 +47,7 @@ jobs:
 
       - name: Install Helmfile
         run: |
-          wget https://github.com/helmfile/helmfile/releases/download/v0.159.0/helmfile_0.159.0_linux_amd64.tar.gz
+          wget https://github.com/local/local/helmfile/local/local/helmfile/releases/download/v0.159.0/helmfile_0.159.0_linux_amd64.tar.gz
           tar -xzf helmfile_0.159.0_linux_amd64.tar.gz
           sudo mv helmfile /usr/local/bin/
           helmfile version
