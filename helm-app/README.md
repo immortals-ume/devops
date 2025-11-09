@@ -1,43 +1,123 @@
-# helm-app
+# Helm App - Production-Ready Application Chart
 
-Production-grade, multi-environment Helm chart for enterprise applications.
+Comprehensive Helm chart for deploying enterprise applications with best practices.
 
-## Structure
-- `Chart.yaml`: Helm chart definition
-- `values-dev.yaml`: Dev environment values
-- `values-sit.yaml`: SIT environment values
-- `values-uat.yaml`: UAT environment values
-- `values-preprod.yaml`: Preprod environment values
-- `values-production.yaml`: Production environment values
-- `templates/`: Kubernetes manifests (ConfigMap, Secret, Deployment, Service, Ingress, etc.)
+## Features
 
-## Usage
+- ✅ Multi-environment support (dev, sit, uat, preprod, production)
+- ✅ Security hardening (non-root, read-only filesystem, security contexts)
+- ✅ High availability (HPA, PDB, pod anti-affinity)
+- ✅ Observability (ServiceMonitor, PrometheusRule, health probes)
+- ✅ Network security (NetworkPolicy)
+- ✅ Flexible configuration (ConfigMap, Secrets, env vars)
+- ✅ Persistence (PVC support)
+- ✅ Jobs & CronJobs (migrations, backups)
+- ✅ Init containers & Sidecars
+- ✅ Ingress with TLS
 
-To deploy for a specific environment:
+## Quick Start
 
-```sh
-helm upgrade --install myapp ./helm-app -f helm-app/values-<env>.yaml
+```bash
+# Install with default values
+helm install myapp ./helm-app -n myapp --create-namespace
+
+# Install for production
+helm install myapp ./helm-app -n myapp \
+  --create-namespace \
+  -f helm-app/values-production.yaml
+
+# Upgrade
+helm upgrade myapp ./helm-app -n myapp \
+  --set image.tag=v1.1.0
 ```
-Replace `<env>` with `dev`, `sit`, `uat`, `preprod`, or `production`.
 
-## CI/CD Integration
+## Configuration
 
-See `.github/workflows/helm-deploy.yaml` for a sample GitHub Actions pipeline for automated Helm deployments.
+### Key Parameters
 
-## Advanced Features & Modularity
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `replicaCount` | Number of replicas | `1` |
+| `image.repository` | Image repository | `nginx` |
+| `image.tag` | Image tag | `1.25-alpine` |
+| `service.port` | Service port | `80` |
+| `autoscaling.enabled` | Enable HPA | `false` |
+| `persistence.enabled` | Enable PVC | `false` |
+| `serviceMonitor.enabled` | Enable monitoring | `false` |
 
-This chart supports optional production-grade features:
-- **PersistentVolumeClaim (PVC):** Enable with `persistence.enabled: true` and set `size`, `storageClass`.
-- **HorizontalPodAutoscaler (HPA):** Enable with `hpa.enabled: true` and set `minReplicas`, `maxReplicas`, `targetCPUUtilizationPercentage`.
-- **PodDisruptionBudget (PDB):** Enable with `pdb.enabled: true` and set `minAvailable` or `maxUnavailable`.
-- **ServiceMonitor:** Enable with `serviceMonitor.enabled: true` for Prometheus Operator integration.
-- **PrometheusRule:** Enable with `prometheusRule.enabled: true` and provide alert rules.
+See `values.yaml` for all available options.
 
-All features are disabled by default in values files. Enable and configure as needed per environment.
+## Examples
+
+### Web Application
+```yaml
+replicaCount: 3
+image:
+  repository: myapp
+  tag: v1.0.0
+ingress:
+  enabled: true
+  hosts:
+    - host: app.example.com
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 10
+```
+
+### API with Database
+```yaml
+secrets:
+  enabled: true
+  data:
+    dbPassword: changeme
+initContainers:
+  - name: wait-for-db
+    image: busybox
+    command: ['sh', '-c', 'until nc -z db 5432; do sleep 2; done']
+```
+
+### Scheduled Jobs
+```yaml
+cronJobs:
+  enabled: true
+  list:
+    - name: backup
+      schedule: "0 2 * * *"
+      image: backup-tool:latest
+      command: ["backup.sh"]
+```
 
 ## Best Practices
-- Use environment-specific values files for all deployments.
-- Store secrets securely (do not commit real secrets).
-- Use HPA and PDB for high availability and resilience in production.
-- Use ServiceMonitor and PrometheusRule for observability and alerting.
-- Use PVC for stateful workloads. 
+
+1. Use specific image tags (not `latest`)
+2. Set resource limits
+3. Enable health probes
+4. Use secrets for sensitive data
+5. Enable HPA for production
+6. Use PDB for availability
+7. Enable monitoring
+8. Use NetworkPolicy
+9. Run as non-root
+10. Use read-only filesystem
+
+## Troubleshooting
+
+```bash
+# Check pods
+kubectl get pods -n myapp
+
+# View logs
+kubectl logs -n myapp <pod-name>
+
+# Check HPA
+kubectl get hpa -n myapp
+
+# Test service
+kubectl run -it --rm debug --image=busybox --restart=Never -- \
+  wget -O- http://myapp.myapp.svc.cluster.local
+```
+
+## License
+
+MIT License

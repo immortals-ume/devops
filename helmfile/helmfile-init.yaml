@@ -1,11 +1,25 @@
+# Helmfile for initialization (namespaces, etc.)
+
 releases:
-  - name: myapp-ns
-    namespace: myapp
-    chart: incubator/raw
-    version: 0.2.3
+  # Create namespaces
+  - name: namespace-myapp
+    chart: ./charts/namespace
+    namespace: default
     values:
-      - resources:
-          - apiVersion: v1
-            kind: Namespace
-            metadata:
-              name: myapp 
+      - namespaces:
+          - name: myapp
+            labels:
+              name: myapp
+              environment: {{ .Environment.Values.environment | default "dev" }}
+          - name: db
+            labels:
+              name: db
+          - name: cache
+            labels:
+              name: cache
+          - name: queue
+            labels:
+              name: queue
+          - name: observability
+            labels:
+              name: observability

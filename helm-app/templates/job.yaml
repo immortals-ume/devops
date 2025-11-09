@@ -1,0 +1,39 @@
+{{- if .Values.jobs.enabled }}
+{{- range .Values.jobs.list }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "helm-app.fullname" $ }}-{{ .name }}
+  labels:
+    {{- include "helm-app.labels" $ | nindent 4 }}
+    app.kubernetes.io/component: job
+spec:
+  template:
+    metadata:
+      labels:
+        {{- include "helm-app.selectorLabels" $ | nindent 8 }}
+        app.kubernetes.io/component: job
+    spec:
+      restartPolicy: {{ .restartPolicy | default "OnFailure" }}
+      containers:
+        - name: {{ .name }}
+          image: {{ .image }}
+          {{- with .command }}
+          command:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .args }}
+          args:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .env }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}
+{{- end }}

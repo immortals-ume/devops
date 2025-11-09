@@ -1,0 +1,235 @@
+# Default values for helm-app
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository: nginx
+  pullPolicy: IfNotPresent
+  tag: "1.25-alpine"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext:
+  fsGroup: 1000
+  runAsUser: 1000
+  runAsGroup: 1000
+  runAsNonRoot: true
+
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+    - ALL
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+  annotations: {}
+
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations: {}
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # nginx.ingress.kubernetes.io/ssl-redirect: "true"
+  hosts:
+    - host: chart-example.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+  #  - secretName: chart-example-tls
+  #    hosts:
+  #      - chart-example.local
+
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+livenessProbe:
+  enabled: true
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  enabled: true
+  httpGet:
+    path: /ready
+    port: http
+  initialDelaySeconds: 10
+  periodSeconds: 5
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+startupProbe:
+  enabled: false
+  httpGet:
+    path: /health
+    port: http
+  initialDelaySeconds: 0
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 30
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+  # maxUnavailable: 1
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# Pod anti-affinity for HA
+podAntiAffinity:
+  enabled: false
+  type: soft  # soft or hard
+
+# Environment variables
+env: []
+  # - name: ENVIRONMENT
+  #   value: "production"
+  # - name: LOG_LEVEL
+  #   value: "info"
+
+# Environment variables from ConfigMap
+envFrom: []
+  # - configMapRef:
+  #     name: app-config
+
+# Secrets
+secrets:
+  enabled: false
+  data: {}
+    # dbPassword: changeme
+    # apiKey: changeme
+
+# ConfigMap
+configMap:
+  enabled: false
+  data: {}
+    # app.properties: |
+    #   key=value
+
+# Persistence
+persistence:
+  enabled: false
+  accessMode: ReadWriteOnce
+  size: 10Gi
+  storageClass: ""
+  mountPath: /data
+  subPath: ""
+
+# Init containers
+initContainers: []
+  # - name: init-db
+  #   image: busybox:1.36
+  #   command: ['sh', '-c', 'until nc -z db 5432; do sleep 2; done']
+
+# Sidecar containers
+sidecars: []
+  # - name: log-forwarder
+  #   image: fluent/fluent-bit:2.0
+  #   volumeMounts:
+  #     - name: logs
+  #       mountPath: /var/log
+
+# Extra volumes
+extraVolumes: []
+  # - name: cache
+  #   emptyDir: {}
+
+# Extra volume mounts
+extraVolumeMounts: []
+  # - name: cache
+  #   mountPath: /cache
+
+# Network Policy
+networkPolicy:
+  enabled: false
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector: {}
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              name: kube-system
+      ports:
+        - protocol: UDP
+          port: 53
+
+# Service Monitor (Prometheus Operator)
+serviceMonitor:
+  enabled: false
+  interval: 30s
+  path: /metrics
+  labels: {}
+
+# Prometheus Rules
+prometheusRule:
+  enabled: false
+  labels: {}
+  rules: []
+    # - alert: HighErrorRate
+    #   expr: rate(http_requests_total{status="500"}[5m]) > 0.05
+    #   for: 5m
+    #   labels:
+    #     severity: critical
+    #   annotations:
+    #     summary: High error rate detected
+
+# Jobs
+jobs:
+  enabled: false
+  list: []
+    # - name: db-migration
+    #   image: migrate/migrate:v4.15.2
+    #   command: ["migrate", "-path", "/migrations", "-database", "postgres://...", "up"]
+    #   restartPolicy: OnFailure
+
+# CronJobs
+cronJobs:
+  enabled: false
+  list: []
+    # - name: backup
+    #   schedule: "0 2 * * *"
+    #   image: backup-tool:latest
+    #   command: ["backup.sh"]
+    #   restartPolicy: OnFailure

@@ -1,0 +1,72 @@
+# Helmfile for infrastructure services (databases, cache, queue, etc.)
+
+releases:
+  # PostgreSQL
+  - name: postgres
+    namespace: db
+    chart: ../helm-charts/postgres
+    version: 0.1.0
+    values:
+      - ../helm-charts/postgres/values/values-{{ .Environment.Values.environment | default "dev" }}.yaml
+    needs:
+      - default/namespace-myapp
+
+  # MySQL
+  - name: mysql
+    namespace: db
+    chart: ../helm-charts/mysql
+    version: 0.1.0
+    values:
+      - ../helm-charts/mysql/values/values-{{ .Environment.Values.environment | default "dev" }}.yaml
+    needs:
+      - default/namespace-myapp
+
+  # MongoDB
+  - name: mongodb
+    namespace: db
+    chart: ../helm-charts/mongodb
+    version: 0.1.0
+    values:
+      - ../helm-charts/mongodb/values/values-{{ .Environment.Values.environment | default "dev" }}.yaml
+    needs:
+      - default/namespace-myapp
+
+  # Redis
+  - name: redis
+    namespace: cache
+    chart: ../helm-charts/redis
+    version: 0.1.0
+    values:
+      - ../helm-charts/redis/values/values-{{ .Environment.Values.environment | default "dev" }}.yaml
+    needs:
+      - default/namespace-myapp
+
+  # Kafka
+  - name: kafka
+    namespace: queue
+    chart: ../helm-charts/kafka
+    version: 0.1.0
+    values:
+      - ../helm-charts/kafka/values/values-{{ .Environment.Values.environment | default "dev" }}.yaml
+    needs:
+      - default/namespace-myapp
+
+  # Observability Stack
+  - name: observability
+    namespace: observability
+    chart: ../helm-charts/observability
+    version: 0.1.0
+    values:
+      - ../helm-charts/observability/values/values-{{ .Environment.Values.environment | default "dev" }}.yaml
+    needs:
+      - default/namespace-myapp
+
+  # Vault
+  - name: vault
+    namespace: vault
+    chart: ../helm-charts/vault
+    version: 0.1.0
+    values:
+      - ../helm-charts/vault/values/values-{{ .Environment.Values.environment | default "dev" }}.yaml
+    needs:
+      - default/namespace-myapp

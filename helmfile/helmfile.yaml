@@ -1,3 +1,31 @@
+# Main Helmfile - Orchestrates all deployments
+# Usage: helmfile apply
+
+# Environments
+environments:
+  dev:
+    values:
+      - environment: dev
+  sit:
+    values:
+      - environment: sit
+  uat:
+    values:
+      - environment: uat
+  preprod:
+    values:
+      - environment: preprod
+  production:
+    values:
+      - environment: production
+
+# Helmfile references
 helmfiles:
+  # Infrastructure setup (namespaces, etc.)
   - path: helmfile-init.yaml
-  - path: helmfile-backend.yaml 
+    
+  # Infrastructure services (databases, cache, etc.)
+  - path: helmfile-infrastructure.yaml
+    
+  # Application services (backend, frontend, etc.)
+  - path: helmfile-apps.yaml

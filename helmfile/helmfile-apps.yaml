@@ -1,0 +1,56 @@
+# Helmfile for application services
+
+releases:
+  # Backend API
+  - name: backend
+    namespace: myapp
+    chart: ../helm-app
+    version: 0.1.0
+    values:
+      - values/backend-{{ .Environment.Values.environment | default "dev" }}.yaml
+    needs:
+      - db/postgres
+      - cache/redis
+    labels:
+      app: backend
+      tier: api
+
+  # Frontend UI
+  - name: frontend
+    namespace: myapp
+    chart: ../helm-app
+    version: 0.1.0
+    values:
+      - values/frontend-{{ .Environment.Values.environment | default "dev" }}.yaml
+    needs:
+      - myapp/backend
+    labels:
+      app: frontend
+      tier: web
+
+  # Worker Service
+  - name: worker
+    namespace: myapp
+    chart: ../helm-app
+    version: 0.1.0
+    values:
+      - values/worker-{{ .Environment.Values.environment | default "dev" }}.yaml
+    needs:
+      - db/postgres
+      - queue/kafka
+    labels:
+      app: worker
+      tier: processing
+
+  # Admin Panel
+  - name: admin
+    namespace: myapp
+    chart: ../helm-app
+    version: 0.1.0
+    values:
+      - values/admin-{{ .Environment.Values.environment | default "dev" }}.yaml
+    needs:
+      - myapp/backend
+    labels:
+      app: admin
+      tier: web
